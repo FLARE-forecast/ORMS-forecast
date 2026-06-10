@@ -55,6 +55,8 @@ flare_tempdir
 plots
 forecasts
 restart
+data_raw
+drivers
 targets
 .DS_Store
 configuration/.DS_Store
