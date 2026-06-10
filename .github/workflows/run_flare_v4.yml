@@ -7,7 +7,7 @@ name: flare_glm_v4
 
 jobs:
   run_forecast:
-    runs-on: ubuntu:latest
+    runs-on: ubuntu-latest
     container:
       image: rqthomas/flare-rocker:4.0.3
     steps:
