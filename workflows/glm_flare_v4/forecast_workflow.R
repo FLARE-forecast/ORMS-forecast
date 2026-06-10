@@ -21,7 +21,7 @@ config <- FLAREr:::set_up_simulation(configure_run_file,lake_directory, config_s
 output <- FLAREr::run_flare(lake_directory = lake_directory,
                             configure_run_file = configure_run_file,
                             config_set_name = config_set_name,
-                            clean_start = TRUE)
+                            clean_start = FALSE)
 
 forecast_start_datetime <- lubridate::as_datetime(config$run_config$forecast_start_datetime) + lubridate::days(1)
 start_datetime <- forecast_start_datetime - lubridate::days(3)
