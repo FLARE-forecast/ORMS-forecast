@@ -1,0 +1,2 @@
+par_names,par_names_save,par_file,par_init_mean,par_init_sd,par_init_lowerbound,par_init_upperbound,par_lowerbound,par_upperbound,perturb_par,par_units,fix_par, par_min_sd
+lw_factor,lw_factor,glm3.nml,0.9,NA,0.95,1.05,0,2,1.02,unitless,0,0.005

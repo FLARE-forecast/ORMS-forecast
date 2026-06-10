@@ -1,0 +1,8 @@
+restart_file: .na
+start_datetime: 2026-06-07 00:00:00
+end_datetime: .na
+forecast_start_datetime: 2026-06-10 00:00:00
+forecast_horizon: 30
+sim_name: test
+configure_flare: configure_flare_glm.yml
+use_s3: no
