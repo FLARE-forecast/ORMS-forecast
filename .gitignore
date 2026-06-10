@@ -47,3 +47,16 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+/.quarto/
+/_site/
+
+flare_tempdir
+plots
+forecasts
+restart
+targets
+.DS_Store
+configuration/.DS_Store
+configuration/glm_flare_v4/.DS_Store
+workflows/.DS_Store
