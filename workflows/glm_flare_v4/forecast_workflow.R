@@ -1,12 +1,10 @@
 library(tidyverse)
-
 library(FLAREr)
 
 lake_directory <- file.path(here::here())
 setwd(lake_directory)
 
 Sys.setenv('GLM_PATH'= GLMAEDr::glm_path())
-Sys.setenv('GLM_PATH'= "/Users/rqthomas/Documents/research/flare-dev/restart/AED_Tools_Private/GLM/glm")
 forecast_site <- "ORMS"
 configure_run_file <- "configure_run.yml"
 config_set_name <- "glm_flare_v4"
@@ -26,11 +24,11 @@ output <- FLAREr::run_flare(lake_directory = lake_directory,
                             clean_start = TRUE)
 
 forecast_start_datetime <- lubridate::as_datetime(config$run_config$forecast_start_datetime) + lubridate::days(1)
-start_datetime <- lubridate::as_datetime(config$run_config$forecast_start_datetime) - lubridate::days(1)
+start_datetime <- forecast_start_datetime - lubridate::days(3)
 restart_file <- paste0(config$location$site_id,"-",
-                       (lubridate::as_date(forecast_start_datetime)- days(1)),
+                       lubridate::as_datetime(config$run_config$forecast_start_datetime),
                        "-",
-                       config$run_config$sim_name ,".nc")
+                       config$run_config$sim_name ,".zip")
 
 FLAREr:::update_run_config(lake_directory = lake_directory,
                            configure_run_file = configure_run_file,
