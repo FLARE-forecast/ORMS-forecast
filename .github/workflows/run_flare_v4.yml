@@ -23,6 +23,7 @@ jobs:
         run: |
           install.packages('rLakeAnalyzer')
           remotes::install_github("flare-forecast/ropenmeteo")
+          GLMAEDr::glm_install()
 
       - name: Run automatic prediction file
         env:
