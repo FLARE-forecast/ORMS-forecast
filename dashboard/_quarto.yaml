@@ -1,0 +1,20 @@
+project:
+  type: website
+  output-dir: docs
+  render: 
+    - alex_dashboard.qmd
+
+website:
+  title: "Lake Alexandrina Dashboard"
+  page-navigation: true
+  repo-url: https://github.com/flare-forecast/alex-dashboard
+  repo-actions: [source, issue]
+  sidebar:
+    style: docked
+    search: true
+    background: primary
+    foreground: primary
+    border: true
+
+editor: visual
+brand: _brand.yaml

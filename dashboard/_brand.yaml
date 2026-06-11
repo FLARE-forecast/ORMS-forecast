@@ -1,0 +1,26 @@
+color:
+  palette:
+    yellow: "#F6E949"
+    blue: "#51C2B9"
+    orange: "#CD4528"
+    black: "#231F20"
+    white: "#F2F2F2"
+  background: white
+  foreground: black
+  primary: blue
+  secondary: orange
+  warning: orange
+  success: orange
+  info: orange
+  danger: orange
+  light: orange
+  dark: orange
+logo: 
+  medium: vt_cef.jpg
+
+typography:
+  fonts:
+    - family: Poppins
+      source: google
+  base: Poppins
+  headings: Poppins
