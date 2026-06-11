@@ -33,7 +33,7 @@ FLAREr::flare_get_file(local_file = config$da_setup$obs_filename,
                remote_folder = file.path("flare", "targets", config$location$site_id),
                config)
 
-print(list.files(file.path("flare", "targets", config$location$site_id), full.names = TRUE))
+print(list.files(file.path(lake_directory, "targets", config$location$site_id), full.names = TRUE))
 
 # Run FLARE
 output <- FLAREr::run_flare(lake_directory = lake_directory,
