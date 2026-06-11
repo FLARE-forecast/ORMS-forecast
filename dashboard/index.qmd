@@ -38,6 +38,9 @@ interest_site <- 'ORMS'
 lake_directory <- getwd()
 options(timeout=300)
 
+Sys.setenv("AWS_REQUEST_CHECKSUM_CALCULATION" = "when_required",
+           "AWS_RESPONSE_CHECKSUM_VALIDATION" = "when_required")
+
 insitu_obs_url<- "https://amnh1.osn.mghpcc.org/bio230121-bucket01/flare/targets/ORMS/ORMS-targets-insitu.csv"
 
 obs_cleaned <- readr::read_csv(insitu_obs_url) |> 
@@ -49,11 +52,10 @@ obs_cleaned <- readr::read_csv(insitu_obs_url) |>
 
 obs_updated <- max(obs_cleaned$datetime,na.rm = TRUE)
 
-s3_forecast <- paste0("../forecasts/parquet")
+s3 <- arrow::s3_bucket('bio230121-bucket01/flare/forecasts/parquet/site_id=ORMS', endpoint_override = 'amnh1.osn.mghpcc.org', anonymous = TRUE)
 
-most_recent <-  arrow::open_dataset(s3_forecast) |> 
-  filter(site_id %in% c(interest_site), 
-         model_id == model_identifier) |>
+most_recent <-  arrow::open_dataset(s3) |> 
+  filter(model_id == model_identifier) |>
   summarize(max = max(reference_datetime)) |> 
   collect() |> 
   pull()
@@ -80,14 +82,7 @@ interest_site <- 'ORMS'
 day_range <- 14
 focal_depths <- c(0.5, 5.0)
 
-#s3 <- arrow::open_dataset(arrow::s3_bucket('bio230121-bucket01/flare/forecasts/parquet/site_id=ORMS', endpoint_override = 'amnh1.osn.xsede.org', anonymous = TRUE))
-
-#ref_date <- s3 |> distinct(reference_datetime) |> 
-#  filter(reference_datetime == max(reference_datetime)) |> 
-#  collect() |> 
-#  pull(reference_datetime)
-
-forecast <- arrow::open_dataset(s3_forecast) |> 
+forecast <- arrow::open_dataset(s3) |> 
   filter(reference_datetime == most_recent,
          variable == "temperature",
          depth %in% c(focal_depths)) |> 
