@@ -27,8 +27,12 @@ FLAREr::flare_get_file(local_file = config$da_setup$obs_filename,
                remote_file = config$da_setup$obs_filename,
                server_name = "targets",
                local_folder = file.path(lake_directory, "targets", config$location$site_id),
-               remote_folder = config$location$site_id,
+               remote_folder = file.path("flare", "targets", config$location$site_id),
                config)
+
+aws.s3::save_object(object = file.path(remote_folder,
+                                       remote_file), bucket = bp[1], file = dst, region = ep[1],
+                    base_url = ep[2], use_https = as.logical(Sys.getenv("USE_HTTPS")))
 
 # Run FLARE
 output <- FLAREr::run_flare(lake_directory = lake_directory,
