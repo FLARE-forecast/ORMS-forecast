@@ -23,6 +23,8 @@ config_set_name <- "glm_flare_v4"
 configure_run_file <- "configure_run.yml"
 config <- FLAREr:::set_up_simulation(configure_run_file,lake_directory, config_set_name = config_set_name, clean_start = FALSE)
 
+FLAREr::get_targets(lake_directory = lake_directory, config = config)
+
 # Run FLARE
 output <- FLAREr::run_flare(lake_directory = lake_directory,
                             configure_run_file = configure_run_file,
