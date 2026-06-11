@@ -19,12 +19,6 @@ jobs:
            fetch-depth: 0
            set-safe-directory: '*'
 
-      - name: install deps
-        env:
-           GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-        shell: Rscript {0}
-        run: remotes::install_deps(".", dep=TRUE)
-
       - uses: quarto-dev/quarto-actions/setup@v2
 
       - name: Render
