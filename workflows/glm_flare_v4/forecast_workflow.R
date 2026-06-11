@@ -4,6 +4,8 @@ library(FLAREr)
 lake_directory <- file.path(here::here())
 setwd(lake_directory)
 
+options(timeout=300)
+
 Sys.setenv('GLM_PATH'= GLMAEDr::glm_path())
 Sys.setenv("AWS_DEFAULT_REGION" = "amnh1",
            "AWS_S3_ENDPOINT" = "osn.mghpcc.org",

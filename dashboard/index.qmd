@@ -69,6 +69,7 @@ Welcome to the the Ormstrup Sø (Lake Ormstrup) water temperature forecast dashb
 
 THIS FORECAST IS ONLY A PROOF OF CONCEPT AND SHOULD NOT BE USED FOR DECISION MAKING OR ANY ACCESSMENT OF FORECAST QUALITY
 
+Page last updated on `r Sys.time()`
 
 ## Most recent forecast
 
