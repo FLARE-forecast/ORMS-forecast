@@ -25,7 +25,7 @@ jobs:
 
       - name: Render
         run: |
-          quarto render
+          quarto render dashboard
 
       - name: Publish
         run: |
