@@ -23,7 +23,7 @@ jobs:
         env:
            GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
         shell: Rscript {0}
-        run: source("install.R")
+        run: source("dashboard/install.R")
 
       - uses: quarto-dev/quarto-actions/setup@v2
         with:
