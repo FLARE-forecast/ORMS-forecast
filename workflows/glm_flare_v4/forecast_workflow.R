@@ -5,6 +5,7 @@ lake_directory <- file.path(here::here())
 setwd(lake_directory)
 
 Sys.setenv('GLM_PATH'= GLMAEDr::glm_path())
+Sys.setenv('USE_HTTPS' = TRUE)
 forecast_site <- "ORMS"
 configure_run_file <- "configure_run.yml"
 config_set_name <- "glm_flare_v4"
@@ -15,7 +16,7 @@ config_set_name <- "glm_flare_v4"
 #walk(list.files(file.path(lake_directory, "R"), full.names = TRUE), source)
 
 configure_run_file <- "configure_run.yml"
-config <- FLAREr:::set_up_simulation(configure_run_file,lake_directory, config_set_name = config_set_name, clean_start = TRUE)
+config <- FLAREr:::set_up_simulation(configure_run_file,lake_directory, config_set_name = config_set_name, clean_start = FALSE)
 
 # Run FLARE
 output <- FLAREr::run_flare(lake_directory = lake_directory,
