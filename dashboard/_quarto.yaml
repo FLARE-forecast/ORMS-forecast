@@ -1,13 +1,13 @@
 project:
   type: website
   output-dir: docs
-  render: 
-    - alex_dashboard.qmd
+  render:
+    - index.qmd
 
 website:
-  title: "Lake Alexandrina Dashboard"
+  title: "Ormstrup Dashboard"
   page-navigation: true
-  repo-url: https://github.com/flare-forecast/alex-dashboard
+  repo-url: https://github.com/flare-forecast/ORMS-forecast-code
   repo-actions: [source, issue]
   sidebar:
     style: docked
