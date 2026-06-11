@@ -4,6 +4,9 @@ library(FLAREr)
 lake_directory <- file.path(here::here())
 setwd(lake_directory)
 
+install.packages("remotes")
+remotes::install_version('arrow', version = '20.0.0')
+
 options(timeout=300)
 
 Sys.setenv('GLM_PATH'= GLMAEDr::glm_path())
