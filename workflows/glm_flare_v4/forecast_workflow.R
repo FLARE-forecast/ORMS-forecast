@@ -14,7 +14,9 @@ Sys.setenv("AWS_DEFAULT_REGION" = "amnh1",
 forecast_site <- "ORMS"
 configure_run_file <- "configure_run.yml"
 config_set_name <- "glm_flare_v4"
-reset_run <- FALSE
+reset_run <- TRUE
+
+source(file.path(lake_directory, "workflows", config_set_name, "add_metrics.R"))
 
 #source('./R/generate_forecast_score_arrow.R')
 
@@ -38,7 +40,11 @@ FLAREr::run_flare(lake_directory = lake_directory,
                             clean_start = reset_run)
 
 # Add additional mixing variables here
-source(file.path(lake_directory, "workflows", config_set_name, "add_metrics.R"))
+add_metrics(bucket = config$s3$forecasts_parquet$bucket,
+            endpoint = config$s3$forecasts_parquet$endpoint,
+            site_id = config$location$site_id,
+            forecast_start_datetime = config$run_config$forecast_start_datetime,
+            sim_name = config$run_config$sim_name)
 
 forecast_start_datetime <- lubridate::as_datetime(config$run_config$forecast_start_datetime) + lubridate::days(1)
 start_datetime <- forecast_start_datetime - lubridate::days(3)
