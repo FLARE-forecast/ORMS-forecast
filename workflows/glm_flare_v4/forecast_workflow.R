@@ -14,7 +14,7 @@ Sys.setenv("AWS_DEFAULT_REGION" = "amnh1",
 forecast_site <- "ORMS"
 configure_run_file <- "configure_run.yml"
 config_set_name <- "glm_flare_v4"
-reset_run <- TRUE
+reset_run <- FALSE
 
 #source('./R/generate_forecast_score_arrow.R')
 
