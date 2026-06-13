@@ -7,11 +7,14 @@ setwd(lake_directory)
 Sys.setenv('GLM_PATH'= GLMAEDr::glm_path())
 Sys.setenv("AWS_DEFAULT_REGION" = "amnh1",
            "AWS_S3_ENDPOINT" = "osn.mghpcc.org",
-           "USE_HTTPS" = TRUE)
+           "USE_HTTPS" = TRUE,
+           "AWS_REQUEST_CHECKSUM_CALCULATION"= "when_required",
+           "AWS_RESPONSE_CHECKSUM_VALIDATION"= "when_required")
 
 forecast_site <- "ORMS"
 configure_run_file <- "configure_run.yml"
 config_set_name <- "glm_flare_v4"
+reset_run <- TRUE
 
 #source('./R/generate_forecast_score_arrow.R')
 
@@ -19,7 +22,7 @@ config_set_name <- "glm_flare_v4"
 #walk(list.files(file.path(lake_directory, "R"), full.names = TRUE), source)
 
 configure_run_file <- "configure_run.yml"
-config <- FLAREr:::set_up_simulation(configure_run_file,lake_directory, config_set_name = config_set_name, clean_start = FALSE)
+config <- FLAREr:::set_up_simulation(configure_run_file,lake_directory, config_set_name = config_set_name, clean_start = reset_run)
 
 FLAREr::flare_get_file(local_file = config$da_setup$obs_filename,
                remote_file = config$da_setup$obs_filename,
@@ -28,13 +31,14 @@ FLAREr::flare_get_file(local_file = config$da_setup$obs_filename,
                remote_folder = file.path("flare", "targets", config$location$site_id),
                config)
 
-print(list.files(file.path(lake_directory, "targets", config$location$site_id), full.names = TRUE))
-
 # Run FLARE
-output <- FLAREr::run_flare(lake_directory = lake_directory,
+FLAREr::run_flare(lake_directory = lake_directory,
                             configure_run_file = configure_run_file,
                             config_set_name = config_set_name,
-                            clean_start = FALSE)
+                            clean_start = reset_run)
+
+# Add additional mixing variables here
+source(file.path(lake_directory, "workflows", config_set_name, "add_metrics.R"))
 
 forecast_start_datetime <- lubridate::as_datetime(config$run_config$forecast_start_datetime) + lubridate::days(1)
 start_datetime <- forecast_start_datetime - lubridate::days(3)
