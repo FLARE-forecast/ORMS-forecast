@@ -33,7 +33,8 @@ jobs:
 
       - name: Render
         run: |
-          quarto render dashboard
+          cd dashboard
+          quarto render
 
       - name: Publish
         run: |
@@ -42,7 +43,9 @@ jobs:
           git checkout gh-pages
           pwd
           ls -l
+          pwd
           cp -r dashboard/docs/* .
+          pwd
           git add .
           ls -l
           git commit -a -m "update pages" || echo "nothing to commit"
