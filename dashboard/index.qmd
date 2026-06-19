@@ -59,6 +59,9 @@ most_recent <-  arrow::open_dataset(s3) |>
   summarize(max = max(reference_datetime)) |> 
   collect() |> 
   pull()
+
+current_time <- round_date(Sys.time(), unit = "minute")
+current_time <- with_tz(current_time, tzone = "Europe/Paris")
 ```
 ::: {.callout-note collapse="true"}
 ## Disclaimer
@@ -71,7 +74,7 @@ Welcome to the the Ormstrup Sø (Lake Ormstrup) water temperature forecast dashb
 
 THIS FORECAST IS ONLY A PROOF OF CONCEPT AND SHOULD NOT BE USED FOR DECISION MAKING OR ANY ACCESSMENT OF FORECAST QUALITY
 
-Page last updated on `r Sys.time()`
+Page last updated on `r current_time` local time.
 
 ## Most recent forecast
 
@@ -91,12 +94,18 @@ forecast <- arrow::open_dataset(s3) |>
   lubridate::with_tz(reference_datetime, tzone = "Europe/Paris") |> 
   mutate(depth_labels = paste0("Depth: ", depth))
 
+datetimes <- round_date(seq(min(forecast$datetime), max(forecast$datetime), by = "3 days"), unit = "day")
+all_datetimes <- round_date(seq(min(forecast$datetime), max(forecast$datetime), by = "1 days"), unit = "day")
+all_datetimes <- all_datetimes[!(all_datetimes %in% datetimes)]
+
 ggplot(forecast, aes(x = datetime, y = prediction, group = parameter)) +
   geom_line() +
   geom_vline(aes(xintercept = reference_datetime)) +
   facet_wrap(~depth_labels) +
   theme_bw() +
-  labs(y = "Water temperature (°C)")
+  labs(y = "Water temperature (°C)") +
+  scale_x_datetime(breaks = datetimes, minor_breaks = all_datetimes) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ## Probability of Mixing
