@@ -1,12 +1,41 @@
 on:
-  #schedule:
-  #  - cron: '0 14 * * *'
   workflow_dispatch:
+  schedule:
+  - cron: "0 13 * * *"
 
-name: dashboard
+name: forecasts_dashboard
 
 jobs:
+  flare_glm_v4:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+    container:
+      image: rqthomas/flare-rocker:4.0.3
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: install deps
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        shell: Rscript {0}
+        run: |
+          install.packages('rLakeAnalyzer')
+          remotes::install_github("flare-forecast/ropenmeteo")
+          GLMAEDr::glm_install()
+
+      - name: Run automatic prediction file
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run:  Rscript $GITHUB_WORKSPACE/workflows/glm_flare_v4/forecast_workflow.R
+
   build-dashboard:
+    needs: flare_glm_v4
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -44,3 +73,4 @@ jobs:
           git add .
           git commit -a -m "update pages" || echo "nothing to commit"
           git push https://${GITHUB_PAT}:${GITHUB_PAT}@github.com/${GITHUB_REPOSITORY}
+
