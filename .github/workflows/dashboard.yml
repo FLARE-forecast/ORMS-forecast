@@ -33,7 +33,8 @@ jobs:
 
       - name: Render
         run: |
-          quarto render dashboard
+          cd dashboard
+          quarto render
 
       - name: Publish
         run: |
