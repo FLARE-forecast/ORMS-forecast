@@ -62,3 +62,5 @@ targets
 configuration/.DS_Store
 configuration/glm_flare_v4/.DS_Store
 workflows/.DS_Store
+
+dashboard/docs
