@@ -125,7 +125,9 @@ ggplot(prob_mix, aes(x = datetime, y = prob_mix)) +
   geom_vline(aes(xintercept = reference_datetime)) +
   theme_bw() +
   labs(title = "Probability that lake is mixed", y = "Probability") +
-  ylim(0,1.0)
+  ylim(0,1.0) +
+  scale_x_datetime(breaks = datetimes, minor_breaks = all_datetimes) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
 ## Location
