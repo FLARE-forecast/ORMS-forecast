@@ -1,5 +1,5 @@
 ---
-title: "Ormstrup Sø Dashboard"
+title: "Ormstrup Sø Water Quality Forecast Dashboard"
 logo: vt_cef.jpg
 fig-width: 10
 fig-asp: 0.3
@@ -109,20 +109,26 @@ forecast <- arrow::open_dataset(s3, schema = forecast_schema) |>
   lubridate::with_tz(datetime, tzone = "Europe/Paris") |> 
   lubridate::with_tz(reference_datetime, tzone = "Europe/Paris") |> 
   mutate(depth_labels = paste0("Depth: ", depth),
-         parameter = paste(model_id,parameter,sep = "_")) 
+         parameter = paste(model_id,parameter,sep = "_"),
+         model_id = ifelse(model_id == "flare_glm_v4_ecmwf_ifs025", "FLARE + ECMWF IFS", model_id),
+         model_id = ifelse(model_id == "flare_glm_v4_gefs_seamless", "FLARE + NCEP GEFS",model_id)) 
 
 datetimes <- round_date(seq(min(forecast$datetime), max(forecast$datetime), by = "3 days"), unit = "day")
 all_datetimes <- round_date(seq(min(forecast$datetime), max(forecast$datetime), by = "1 days"), unit = "day")
 all_datetimes <- all_datetimes[!(all_datetimes %in% datetimes)]
 
 ggplot(forecast, aes(x = datetime, y = prediction, group = parameter, color = model_id)) +
-  geom_line(alpha = 0.7) +
+  geom_line(alpha = 0.3) +
   geom_vline(aes(xintercept = reference_datetime)) +
   facet_wrap(~depth_labels) +
   theme_bw() +
-  labs(y = "Water temperature (°C)") +
+  labs(y = "Water temperature (°C)", color = "Model") +
   scale_x_datetime(breaks = datetimes, minor_breaks = all_datetimes) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.background = element_rect(fill = "#F2F2F2",color = "#F2F2F2"),
+        plot.background = element_rect(fill = "#F2F2F2",color = "#F2F2F2"),
+        legend.background = element_rect(fill = "#F2F2F2",color = "#F2F2F2"),
+        legend.position = "bottom")
 ```
 
 ## Probability of Mixing
@@ -137,16 +143,22 @@ forecast <- arrow::open_dataset(s3, schema = forecast_schema) |>
          variable == "prob_mixed_density") |> 
   collect() |> 
   lubridate::with_tz(datetime, tzone = "Europe/Paris") |> 
-  lubridate::with_tz(reference_datetime, tzone = "Europe/Paris")
+  lubridate::with_tz(reference_datetime, tzone = "Europe/Paris") |> 
+  mutate(model_id = ifelse(model_id == "flare_glm_v4_ecmwf_ifs025", "FLARE + ECMWF IFS", model_id),
+         model_id = ifelse(model_id == "flare_glm_v4_gefs_seamless", "FLARE + NCEP GEFS",model_id))
 
 ggplot(forecast, aes(x = datetime, y = prediction, color = model_id)) +
   geom_line() +
   geom_vline(aes(xintercept = reference_datetime)) +
   theme_bw() +
-  labs(title = "Probability that lake is mixed", y = "Probability") +
+  labs(title = "Probability that lake is mixed", y = "Probability", color = "Model") +
   ylim(0,1.0) +
   scale_x_datetime(breaks = datetimes, minor_breaks = all_datetimes) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.background = element_rect(fill = "#F2F2F2",color = "#F2F2F2"),
+        plot.background = element_rect(fill = "#F2F2F2",color = "#F2F2F2"),
+        legend.background = element_rect(fill = "#F2F2F2",color = "#F2F2F2"),
+        legend.position = "bottom")
 
 ```
 ## Location
@@ -168,7 +180,11 @@ leaflet() %>%
 
 ## Learn more
 
-More information about the project
+::: {.card title = "How forecasts are created"}
+
+Forecasts are generated using the Forecasting Lakes and Reservoir Ecosystem (FLARE) system.  FLARE combines data assimilation (ensemble Kalman filter), the General Lake Model (GLM), and numerical weather forecasts to generate ensemble water quality forecasts.  It provides depth resolved outputs that include uncertainty from weather forecasts (via ensemble weather forecasts), GLM parameters, and GLM numerical representation of the ecosystem.  The forecasts are automatically generated every day at 13:00 UTC using GitHub Actions.  
+
+:::
 
 
 ::: {.card title = "Relevant Research from the Virginia Tech Center for Ecosystem Forecasting"}
