@@ -108,14 +108,15 @@ forecast <- arrow::open_dataset(s3, schema = forecast_schema) |>
   collect() |> 
   lubridate::with_tz(datetime, tzone = "Europe/Paris") |> 
   lubridate::with_tz(reference_datetime, tzone = "Europe/Paris") |> 
-  mutate(depth_labels = paste0("Depth: ", depth))
+  mutate(depth_labels = paste0("Depth: ", depth),
+         parameter = paste(model_id,parameter,sep = "_")) 
 
 datetimes <- round_date(seq(min(forecast$datetime), max(forecast$datetime), by = "3 days"), unit = "day")
 all_datetimes <- round_date(seq(min(forecast$datetime), max(forecast$datetime), by = "1 days"), unit = "day")
 all_datetimes <- all_datetimes[!(all_datetimes %in% datetimes)]
 
-ggplot(forecast, aes(x = datetime, y = prediction, group = parameter)) +
-  geom_line() +
+ggplot(forecast, aes(x = datetime, y = prediction, group = parameter, color = model_id)) +
+  geom_line(alpha = 0.7) +
   geom_vline(aes(xintercept = reference_datetime)) +
   facet_wrap(~depth_labels) +
   theme_bw() +
@@ -138,7 +139,7 @@ forecast <- arrow::open_dataset(s3, schema = forecast_schema) |>
   lubridate::with_tz(datetime, tzone = "Europe/Paris") |> 
   lubridate::with_tz(reference_datetime, tzone = "Europe/Paris")
 
-ggplot(forecast, aes(x = datetime, y = prediction)) +
+ggplot(forecast, aes(x = datetime, y = prediction, color = model_id)) +
   geom_line() +
   geom_vline(aes(xintercept = reference_datetime)) +
   theme_bw() +
