@@ -52,9 +52,26 @@ obs_cleaned <- readr::read_csv(insitu_obs_url) |>
 
 obs_updated <- max(obs_cleaned$datetime,na.rm = TRUE)
 
+
+forecast_schema <- schema(
+  reference_datetime = timestamp(unit = "us", timezone = "UTC"),
+  datetime            = timestamp(unit = "us", timezone = "UTC"),
+  pub_datetime         = timestamp(unit = "us", timezone = "UTC"),
+  depth                = float64(),
+  family               = utf8(),
+  parameter            = utf8(),
+  variable             = utf8(),
+  prediction           = float64(),
+  forecast             = float64(),
+  variable_type        = utf8(),
+  log_weight           = float64(),
+  model_id             = utf8(),
+  reference_date       = utf8()
+)
+
 s3 <- arrow::s3_bucket('bio230121-bucket01/flare/forecasts/parquet/site_id=ORMS', endpoint_override = 'amnh1.osn.mghpcc.org', anonymous = TRUE)
 
-most_recent <-  arrow::open_dataset(s3) |> 
+most_recent <-  arrow::open_dataset(s3, schema = forecast_schema) |> 
   filter(model_id == model_identifier) |>
   summarize(max = max(reference_datetime)) |> 
   collect() |> 
@@ -85,7 +102,7 @@ interest_site <- 'ORMS'
 day_range <- 14
 focal_depths <- c(0.5, 5.0)
 
-forecast <- arrow::open_dataset(s3) |> 
+forecast <- arrow::open_dataset(s3, schema = forecast_schema) |> 
   filter(reference_datetime == most_recent,
          variable == "temperature",
          depth %in% c(focal_depths)) |> 
@@ -112,15 +129,17 @@ ggplot(forecast, aes(x = datetime, y = prediction, group = parameter)) +
 
 ```{r}
 
-prob_mix <- forecast |>
-  select(reference_datetime, datetime, depth, parameter, prediction) |>
-  filter(depth %in% c(0.5, 5)) |>
-  pivot_wider(names_from = depth, values_from = prediction) |>
-  mutate(mixed = ifelse(abs(`0.5` - `5`) < 1.0, 1, 0)) |>
-  group_by(datetime, reference_datetime) |>
-  summarize(prob_mix = sum(mixed)/ n(), .groups = "drop_last")
 
-ggplot(prob_mix, aes(x = datetime, y = prob_mix)) +
+
+forecast <- arrow::open_dataset(s3, schema = forecast_schema) |> 
+  mutate(parameter = as.character(parameter)) |> 
+  filter(reference_datetime == most_recent,
+         variable == "prob_mixed_density") |> 
+  collect() |> 
+  lubridate::with_tz(datetime, tzone = "Europe/Paris") |> 
+  lubridate::with_tz(reference_datetime, tzone = "Europe/Paris")
+
+ggplot(forecast, aes(x = datetime, y = prediction)) +
   geom_line() +
   geom_vline(aes(xintercept = reference_datetime)) +
   theme_bw() +
