@@ -3,7 +3,7 @@ start_datetime: 2026-06-10 00:00:00
 end_datetime: .na
 forecast_start_datetime: 2026-06-13 00:00:00
 forecast_horizon: 14
-sim_name: flare_glm_v4_gefs_seamless
-configure_flare: configure_flare_glm.yml
+sim_name: flare_glm_v4_ecmwf_ifs025
+configure_flare: configure_flare_glm_ecmwf_ifs025.yml
 use_s3: true
 use_faasr: false

@@ -13,7 +13,7 @@ format:
       scrolling: true
       nav-buttons:
       - icon: github
-        href: https://github.com/FLARE-forecast/alex-dashboard
+        href: https://github.com/FLARE-forecast/ORMS-forecast
       css: style.css
 ---
 
@@ -31,7 +31,7 @@ build_day <- Sys.Date()
 timezone <- 'Europe/Paris'
 
 #model_identifier = 'glm_flare_v3'
-model_identifier = 'test'
+model_identifier = 'flare_glm_v4_gefs_seamless'
 interest_site <- 'ORMS'
 
 ### READ IN INSITU TARGETS
