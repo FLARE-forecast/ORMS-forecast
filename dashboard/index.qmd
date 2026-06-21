@@ -30,8 +30,7 @@ build_day <- Sys.Date()
 
 timezone <- 'Europe/Paris'
 
-#model_identifier = 'glm_flare_v3'
-model_identifier = 'flare_glm_v4_gefs_seamless'
+model_identifier <- 'flare_glm_v4_gefs_seamless'
 interest_site <- 'ORMS'
 
 ### READ IN INSITU TARGETS
