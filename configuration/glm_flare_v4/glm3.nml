@@ -24,7 +24,6 @@
    coef_mix_KH = 0.3
    coef_mix_hyp = 0.5
    deep_mixing = 2
-   !diff = 1e-8
    coef_mix_shreq = 0
 /
 &morphometry
@@ -34,7 +33,6 @@
    bsn_len = 650
    bsn_wid = 225
    bsn_vals = 13
-   !base_elev = 27.0
    H = 27, 27.5, 28, 28.5, 29, 29.5, 30, 30.5, 31, 31.5, 32, 32.5, 33
    A = 18053.9, 27563.94, 38262.41,  49464,  71469.6,  85366.43, 108121.13, 121128.95, 129484.41, 134233.28, 136632.59, 136637.94, 136637.94
    !crest_elev = 33
@@ -64,9 +62,6 @@
    snow_thickness = 0
    white_ice_thickness = 0
    blue_ice_thickness = 0
-   !avg_surf_temp = 13
-   !restart_variables = 0
-   !restart_mixer_count = 0
    init_restart_fname = 'glm_restart.nc'
    init_restart_from_file = 0
 /
@@ -81,12 +76,12 @@
    cloud_mode = 4
    meteo_fl = 'met_test.csv'
    subdaily = .true.
-   wind_factor = 1 !0.7
-   sw_factor = 1 !0.8155315
+   wind_factor = 1 
+   sw_factor = 1 
    lw_factor = 1
    at_factor = 1
    rh_factor = 1
-   rain_factor = 1 !1
+   rain_factor = 1
    cd = 0.0013
    ce = 0.0011
    ch = 0.0013
@@ -101,7 +96,7 @@
    strm_hf_angle = 65
    strmbd_slope = 1.5
    strmbd_drag = 0.016
-   inflow_factor = 1 !1.231821
+   inflow_factor = 1 
    inflow_fl = 'input/L0002-inflow-dummy.csv'
    inflow_varnum = 2
    !inflow_vars = 'FLOW','TEMP'
@@ -129,10 +124,10 @@
    n_zones = 2
    zone_heights =  2.5, 10.0
    sed_heat_Ksoil = 1.3, 1.3
-   sed_temp_depth = 0.5, 0.5
-   sed_temp_mean = 12, 12
-   sed_temp_amplitude = 3, 6
-   sed_temp_peak_doy = 267, 278
+   !sed_temp_depth = 0.5, 0.5
+   !sed_temp_mean = 12, 12
+   !sed_temp_amplitude = 3, 6
+   !sed_temp_peak_doy = 267, 278
    n_sed_layers    = 14
    sed_layer_depth = 0.00, 0.01, 0.02, 0.04, 0.07, 0.12, 0.20, 0.32, 0.50, 0.78, 1.15, 1.65, 2.25, 3.00
    sed_vwc         = 0.4
