@@ -14,7 +14,7 @@ Sys.setenv("AWS_DEFAULT_REGION" = "amnh1",
 forecast_site <- "ORMS"
 configure_run_file <- "configure_run_seasonal.yml"
 config_set_name <- "glm_flare_v4"
-reset_run <- TRUE
+reset_run <- FALSE
 
 source(file.path(lake_directory, "workflows", config_set_name, "add_metrics.R"))
 
