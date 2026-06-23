@@ -108,7 +108,7 @@ forecast <- arrow::open_dataset(s3, schema = forecast_schema) |>
   collect() |> 
   lubridate::with_tz(datetime, tzone = "Europe/Paris") |> 
   lubridate::with_tz(reference_datetime, tzone = "Europe/Paris") |> 
-  mutate(depth_labels = paste0("Depth: ", depth),
+  mutate(depth_labels = paste0("Depth: ", depth, " m"),
          parameter = paste(model_id,parameter,sep = "_"),
          model_id = ifelse(model_id == "flare_glm_v4_ecmwf_ifs025", "FLARE + ECMWF IFS", model_id),
          model_id = ifelse(model_id == "flare_glm_v4_gefs_seamless", "FLARE + NCEP GEFS",model_id)) 
