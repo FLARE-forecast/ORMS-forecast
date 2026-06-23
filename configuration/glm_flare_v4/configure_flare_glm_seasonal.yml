@@ -1,0 +1,101 @@
+s3:
+  drivers:
+    endpoint: amnh1.osn.mghpcc.org
+    bucket: bio230121-bucket01/flare/drivers/met
+  inflow_drivers:
+    endpoint: amnh1.osn.mghpcc.org
+    bucket: bio230121-bucket01/flare/drivers/inflow/fcre/lm_ar
+  targets:
+    endpoint: amnh1.osn.mghpcc.org
+    bucket: bio230121-bucket01/flare/targets
+  forecasts:
+    endpoint: amnh1.osn.mghpcc.org
+    bucket: bio230121-bucket01/flare/forecasts/netcdf
+  forecasts_parquet:
+    endpoint: amnh1.osn.mghpcc.org
+    bucket: bio230121-bucket01/flare/forecasts/parquet
+  restart:
+    endpoint: amnh1.osn.mghpcc.org
+    bucket: bio230121-bucket01/flare/restart
+  scores:
+    endpoint: amnh1.osn.mghpcc.org
+    bucket: bio230121-bucket01/flare/scores/parquet
+location:
+   site_id: ORMS
+   name: Lake Ormstrup
+   latitude: 56.327    #Degrees North
+   longitude: 9.645  #Degrees East
+da_setup:
+    da_method: enkf
+    par_fit_method: inflate
+    ensemble_size:  102
+    localization_distance: .na #distance in meters where covariances in the model error are used
+    no_negative_states: TRUE
+    assimilate_first_step: FALSE
+    use_obs_constraint: TRUE
+    obs_filename: ORMS-targets-insitu.csv
+    use_inflation_factor: no
+    inflation_factor: 1.1
+    inflation_only_at_da: no
+    add_random_noise: 2
+model_settings:
+   ncore: 4
+   model_name: glm_aed
+   base_GLM_nml: glm3.nml
+   base_AED_nml: aed2.nml
+   max_model_layers: 60
+   modeled_depths: [0.00,0.5,1.0,1.5,2.0,2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0]
+   par_config_file: parameter_calibration_config_aed.csv
+   obs_config_file: observations_config_aed.csv
+   states_config_file: states_config_aed.csv
+   depth_sd: 0.05
+default_init:
+   lake_depth: 5.5  #not a modeled state
+   temp:
+   - 13
+   - 13
+   - 13
+   temp_depths:
+   - 0.1
+   - 0.5
+   - 5.5
+   salinity: 0.0
+   snow_thickness: 0.0
+   white_ice_thickness: 0.0
+   blue_ice_thickness: 0.0
+flows:
+   include_inflow: FALSE
+   include_outflow: FALSE
+   future_inflow_model: future/model_id=thomson_persistence/reference_datetime={reference_date}/site_id={site_id}
+   historical_inflow_model: historical/model_id=thomson_persistence
+   future_outflow_model: future/model_id=outflow_persistence/reference_datetime={reference_date}/site_id={site_id}
+   historical_outflow_model: historical/model_id=outflow_historic_v0
+   local_outflow_directory: drivers/outflow
+   local_inflow_directory: drivers/inflow
+   use_flows_s3: true
+   use_ler_vars: no
+met:
+   future_met_model: 'drivers-mwc/met/gefs-v12/stage2/reference_datetime={reference_date}/site_id={site_id}'
+   historical_met_model: 'drivers-mwc/met/gefs-v12/stage3/site_id={site_id}'
+   historical_met_use_s3: FALSE
+   future_met_use_s3: FALSE
+   use_openmeteo: TRUE
+   local_met_directory: 'drivers/met'
+   use_forecasted_met: TRUE
+   use_ler_vars: FALSE
+   forecast_lag_days: 1
+   openmeteo_api: seasonal
+   openmeteo_model: ecmwf_seasonal_seamless
+   use_openmeteo_archive: FALSE
+uncertainty:
+   observation: TRUE
+   process: TRUE
+   weather: TRUE
+   initial_condition: TRUE
+   parameter: TRUE
+   inflow: TRUE
+output_settings:
+   diagnostics_names:  [extc]
+   generate_plots: TRUE
+   restart_save_timesteps: [-3, -2, -1, 0, 1]
+

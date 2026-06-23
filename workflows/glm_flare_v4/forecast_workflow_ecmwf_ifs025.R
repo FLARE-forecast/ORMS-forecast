@@ -39,11 +39,13 @@ FLAREr::run_flare(lake_directory = lake_directory,
                             clean_start = reset_run)
 
 # Add additional mixing variables here
-add_metrics(bucket = config$s3$forecasts_parquet$bucket,
-            endpoint = config$s3$forecasts_parquet$endpoint,
+add_metrics(use_s3 = config$run_config$use_s3,
             site_id = config$location$site_id,
             forecast_start_datetime = config$run_config$forecast_start_datetime,
-            sim_name = config$run_config$sim_name)
+            sim_name = config$run_config$sim_name,
+            bucket = config$s3$forecasts_parquet$bucket,
+            endpoint = config$s3$forecasts_parquet$endpoint,
+            local_dir = file.path(lake_directory, "forecasts", "parquet"))
 
 forecast_start_datetime <- lubridate::as_datetime(config$run_config$forecast_start_datetime) + lubridate::days(1)
 start_datetime <- forecast_start_datetime - lubridate::days(3)

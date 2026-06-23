@@ -12,9 +12,9 @@ Sys.setenv("AWS_DEFAULT_REGION" = "amnh1",
            "AWS_RESPONSE_CHECKSUM_VALIDATION"= "when_required")
 
 forecast_site <- "ORMS"
-configure_run_file <- "configure_run.yml"
+configure_run_file <- "configure_run_seasonal.yml"
 config_set_name <- "glm_flare_v4"
-reset_run <- FALSE
+reset_run <- TRUE
 
 source(file.path(lake_directory, "workflows", config_set_name, "add_metrics.R"))
 
@@ -23,23 +23,21 @@ source(file.path(lake_directory, "workflows", config_set_name, "add_metrics.R"))
 #' Source the R files in the repository
 #walk(list.files(file.path(lake_directory, "R"), full.names = TRUE), source)
 
-configure_run_file <- "configure_run.yml"
 config <- FLAREr:::set_up_simulation(configure_run_file,lake_directory, config_set_name = config_set_name, clean_start = reset_run)
 
 FLAREr::flare_get_file(local_file = config$da_setup$obs_filename,
-               remote_file = config$da_setup$obs_filename,
-               server_name = "targets",
-               local_folder = file.path(lake_directory, "targets", config$location$site_id),
-               remote_folder = file.path("flare", "targets", config$location$site_id),
-               config)
+                       remote_file = config$da_setup$obs_filename,
+                       server_name = "targets",
+                       local_folder = file.path(lake_directory, "targets", config$location$site_id),
+                       remote_folder = file.path("flare", "targets", config$location$site_id),
+                       config)
 
 # Run FLARE
 FLAREr::run_flare(lake_directory = lake_directory,
-                            configure_run_file = configure_run_file,
-                            config_set_name = config_set_name,
-                            clean_start = reset_run)
+                  configure_run_file = configure_run_file,
+                  config_set_name = config_set_name,
+                  clean_start = reset_run)
 
-# Add additional mixing variables here
 add_metrics(use_s3 = config$run_config$use_s3,
             site_id = config$location$site_id,
             forecast_start_datetime = config$run_config$forecast_start_datetime,
@@ -47,6 +45,7 @@ add_metrics(use_s3 = config$run_config$use_s3,
             bucket = config$s3$forecasts_parquet$bucket,
             endpoint = config$s3$forecasts_parquet$endpoint,
             local_dir = file.path(lake_directory, "forecasts", "parquet"))
+
 
 forecast_start_datetime <- lubridate::as_datetime(config$run_config$forecast_start_datetime) + lubridate::days(1)
 start_datetime <- forecast_start_datetime - lubridate::days(3)

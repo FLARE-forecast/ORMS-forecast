@@ -1,0 +1,9 @@
+restart_file: .na
+start_datetime: 2026-06-15 00:00:00
+end_datetime: .na
+forecast_start_datetime: 2026-06-22 00:00:00
+forecast_horizon: 182
+sim_name: flare_glm_v4_ecmwf_seasonal
+configure_flare: configure_flare_glm_seasonal.yml
+use_s3: true
+use_faasr: false
