@@ -76,8 +76,8 @@
    cloud_mode = 4
    meteo_fl = 'met_test.csv'
    subdaily = .true.
-   wind_factor = 1 
-   sw_factor = 1 
+   wind_factor = 1
+   sw_factor = 1
    lw_factor = 1
    at_factor = 1
    rh_factor = 1
@@ -96,7 +96,7 @@
    strm_hf_angle = 65
    strmbd_slope = 1.5
    strmbd_drag = 0.016
-   inflow_factor = 1 
+   inflow_factor = 1
    inflow_fl = 'input/L0002-inflow-dummy.csv'
    inflow_varnum = 2
    !inflow_vars = 'FLOW','TEMP'
@@ -110,14 +110,14 @@
    outflow_factor = 1.5 !0.9095322
    flt_off_sw = .false.
 /
-!&snowice
-!   snow_albedo_factor = 0.8
-!   snow_rho_max = 300
-!   snow_rho_min = 50
-!   min_ice_thickness = 0.001
-!   dt_iceon_avg = 0.01 !0.4871099
-!   avg_surf_temp_thres = 0.1
-!/
+&snowice
+   snow_albedo_factor = 0.8
+   snow_rho_max = 300
+   snow_rho_min = 50
+   min_ice_thickness = 0.001
+   dt_iceon_avg = 0.01 !0.4871099
+   avg_surf_temp_thres = 0.1
+/
 &sediment
    benthic_mode = 2
    sed_heat_model = 2
