@@ -12,7 +12,7 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       AWS_REQUEST_CHECKSUM_CALCULATION: when_required
       AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
-    container: rqthomas/flare-rocker:4.0.3
+    container: rqthomas/flare-rocker:4.0.4
     steps:
       - run: git config --system --add safe.directory '*'
 
