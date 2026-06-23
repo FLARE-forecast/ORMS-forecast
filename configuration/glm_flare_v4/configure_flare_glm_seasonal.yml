@@ -97,5 +97,5 @@ uncertainty:
 output_settings:
    diagnostics_names:  [extc]
    generate_plots: TRUE
-   restart_save_timesteps: [-3, -2, -1, 0, 1]
+   restart_save_timesteps: [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1]
 
