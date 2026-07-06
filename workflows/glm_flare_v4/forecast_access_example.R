@@ -1,6 +1,7 @@
 library(tidyverse)
 library(arrow)
 
+#Set this starting date of your forecast
 focal_datetime <- as_datetime("2026-06-23 00:00:00")
 
 #Use these models for the short-term forecast
