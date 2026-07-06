@@ -12,10 +12,10 @@ Sys.setenv("AWS_DEFAULT_REGION" = "amnh1",
 # This need to be set to run each experiment
 
 run_name <- "reforecast_v1"
-config_flare_file <- "configure_flare_glm_aed.yml"
+config_flare_file <- "configure_flare_glm.yml"
 starting_index <- 1 #260
-source(file.path(lake_directory, "workflows", config_set_name, "add_metrics.R"))
-source(file.path(lake_directory, "workflows", config_set_name, "generate_forecast_score_arrow.R"))
+source(file.path(lake_directory, "workflows", "glm_flare_v4", "add_metrics.R"))
+source(file.path(lake_directory, "workflows", "reforecast", "generate_forecast_score_arrow.R"))
 
 # These don't need to be changed
 
@@ -23,6 +23,7 @@ config_set_name <- "glm_flare_v4"
 site <- "ORMS"
 configure_run_file <- "configure_run.yml"
 use_s3 <- TRUE
+experiments <- "ncep"
 lake_directory <- here::here()
 
 options(future.globals.maxSize = 891289600)
@@ -38,7 +39,7 @@ second_date <- as_date("2021-01-01") - days(days_between_forecasts)
 
 all_dates <- seq.Date(starting_date,second_date + days(days_between_forecasts * num_forecasts), by = days_between_forecasts)
 
-potential_date_list <- list(baseline = all_dates)
+potential_date_list <- list(ncep = all_dates)
 
 date_list <- potential_date_list[which(names(potential_date_list) %in% experiments)]
 
@@ -127,11 +128,24 @@ for(i in starting_index:nrow(sims)){
               endpoint = config$s3$forecasts_parquet$endpoint,
               local_dir = file.path(lake_directory, "forecasts", "parquet"))
 
+  targets_df <- read_csv(file.path(lake_directory, "targets", config$location$site_id, config$da_setup$obs_filename))
+
+  s3 <- arrow::s3_bucket(paste0(config$s3$forecasts_parquet$bucket, "/site_id=", config$location$site_id),
+                           endpoint_override = config$s3$forecasts_parquet$endpoint,
+                           anonymous = TRUE)
+
+  ref_date <- as.character(lubridate::as_date(config$run_config$forecast_start_datetime))
+  forecast_df <- arrow::open_dataset(s3) |>
+    filter(model_id == config$run_config$sim_name,
+           reference_date == ref_date) |>
+    collect() |>
+    mutate(datetime = lubridate::as_datetime(datetime))
+
   generate_forecast_score_arrow(targets_df = targets_df,
                                 forecast_df = forecast_df,
                                 use_s3 = TRUE,
-                                bucket = NULL,
-                                endpoint = NULL,
+                                bucket = config$s3$scores$bucket,
+                                endpoint = config$s3$scores$endpoint,
                                 local_directory = file.path(lake_directory, "scores/parquet"),
                                 variable_types = c("state","parameter","diagnostic"))
 }
