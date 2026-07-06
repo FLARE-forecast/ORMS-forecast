@@ -30,7 +30,7 @@ build_day <- Sys.Date()
 
 timezone <- 'Europe/Paris'
 
-model_identifier <- 'flare_glm_v4_gefs_seamless'
+model_identifiers <- c('flare_glm_v4_gefs_seamless','flare_glm_v4_ecmwf_ifs025')
 interest_site <- 'ORMS'
 
 ### READ IN INSITU TARGETS
@@ -71,7 +71,7 @@ forecast_schema <- schema(
 s3 <- arrow::s3_bucket('bio230121-bucket01/flare/forecasts/parquet/site_id=ORMS', endpoint_override = 'amnh1.osn.mghpcc.org', anonymous = TRUE)
 
 most_recent <-  arrow::open_dataset(s3, schema = forecast_schema) |> 
-  filter(model_id == model_identifier) |>
+  filter(model_id %in% model_identifiers) |>
   summarize(max = max(reference_datetime)) |> 
   collect() |> 
   pull()
@@ -103,6 +103,7 @@ focal_depths <- c(0.5, 5.0)
 
 forecast <- arrow::open_dataset(s3, schema = forecast_schema) |> 
   filter(reference_datetime == most_recent,
+         model_id %in% model_identifiers,
          variable == "temperature",
          depth %in% c(focal_depths)) |> 
   collect() |> 
@@ -138,9 +139,6 @@ ggplot(forecast, aes(x = datetime, y = prediction, group = parameter, color = mo
 ## Probability of Mixing
 
 ```{r}
-
-
-
 forecast <- arrow::open_dataset(s3, schema = forecast_schema) |> 
   mutate(parameter = as.character(parameter)) |> 
   filter(reference_datetime == most_recent,
