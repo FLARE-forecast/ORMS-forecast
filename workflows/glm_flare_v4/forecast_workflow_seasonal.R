@@ -48,7 +48,7 @@ add_metrics(use_s3 = config$run_config$use_s3,
 
 
 forecast_start_datetime <- lubridate::as_datetime(config$run_config$forecast_start_datetime) + lubridate::days(1)
-start_datetime <- forecast_start_datetime - lubridate::days(3)
+start_datetime <- forecast_start_datetime - lubridate::days(7)
 restart_file <- paste0(config$location$site_id,"-",
                        lubridate::as_datetime(config$run_config$forecast_start_datetime),
                        "-",
