@@ -253,7 +253,7 @@ make_responsive <- function(p) {
           var yTitle = el.layout.yaxis.title;
           if (!yTitle._origtext) yTitle._origtext = yTitle.text;
           var shortTitle = yTitle._origtext
-            .replace('Water temperature', 'Temp')
+            .replace('Water temperature', 'Water temp.')
             .replace('Probability', 'Prob.');
           update['yaxis.title.text'] = mobile ? shortTitle : yTitle._origtext;
         }
@@ -489,22 +489,22 @@ leaflet() %>%
 
 ### Learn more {width=60%}
 
-::: {.card title = "How forecasts are created"}
+::: {.card title = "How the forecasts are created"}
 
 Forecasts are generated using the Forecasting Lakes and Reservoir Ecosystem (FLARE) system.  FLARE combines data assimilation (Ensemble Kalman Filter), the General Lake Model (GLM), and numerical weather forecasts to generate ensemble water quality forecasts.  It provides depth resolved outputs that include uncertainty from weather forecasts (via ensemble weather forecasts), GLM parameters, and GLM numerical representation of the ecosystem.  The forecasts are automatically generated every day at 13:00 UTC using GitHub Actions.
 
-The forecasts presented here are driven by two different numerical weather forecast models.  The NCEF GEFS (National Center for Environmental Prediction Global Ensemble Forecasting System) a 31-ensemble member forecast at the 0.25° resolution.  The ECMWF IFS (European Centre for Medium-Range Weather Forecasts Integrated Forecasting System) is a 51-ensemble member forecast at the the 0.25° resolution. Both forecast products are accessed through <https://open-meteo.com>.
+The forecasts presented here are driven by two different numerical weather forecast models.  The NCEF GEFS (National Center for Environmental Prediction Global Ensemble Forecasting System) is a 31-ensemble member forecast at the 0.25° resolution.  The ECMWF IFS (European Centre for Medium-Range Weather Forecasts Integrated Forecasting System) is a 51-ensemble member forecast at the the 0.25° resolution. Both forecast products are accessed through <https://open-meteo.com>.
 
-The probability of mixing is calculated by comparing the density at the top and bottom of the lake for each ensemble and determining the percentage of ensemble members with a density difference of less than 0.1 kg/m3
+The probability of mixing is calculated by comparing the density at the top and bottom of the lake for each ensemble member and determining the percentage of ensemble members with a density difference of less than 0.1 kg/m3
 
 :::
 
 
-::: {.card title = "Relevant Research from the Virginia Tech Center for Ecosystem Forecasting"}
+::: {.card title = "Relevant research from the Virginia Tech Center for Ecosystem Forecasting"}
 
-Learn more about other forecasting applications by the Virginia Tech Center for Ecosystem Forecasting [here](https://www.ltreb-reservoirs.org/products/#publications-forecasting-and-modeling).
+Learn more about other forecasting applications by the Center [here](https://www.ltreb-reservoirs.org/products/#publications-forecasting-and-modeling).
 
-Learn more about the ongoing research at the Center for Ecosystem Forecasting [here](https://ecoforecast.centers.vt.edu/research.html).
+Learn more about the ongoing research at the Center [here](https://ecoforecast.centers.vt.edu/research.html).
 
 :::
 
