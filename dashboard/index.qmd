@@ -5,7 +5,7 @@ fig-width: 10
 fig-asp: 0.3
 format:
   dashboard:
-      theme: 
+      theme:
         - brand
         - style.scss
       orientation: rows
@@ -25,13 +25,28 @@ library(bslib)
 library(bsicons)
 library(leaflet)
 library(oce)
+library(plotly)
 
-build_day <- Sys.Date() 
+build_day <- Sys.Date()
 
 timezone <- 'Europe/Paris'
 
-model_identifier <- 'flare_glm_v4_gefs_seamless'
+model_identifiers <- c('flare_glm_v4_gefs_seamless','flare_glm_v4_ecmwf_ifs025')
+model_labels <- c(
+  flare_glm_v4_gefs_seamless = "FLARE + NCEP GEFS",
+  flare_glm_v4_ecmwf_ifs025  = "FLARE + ECMWF IFS"
+)
+model_colors <- c(
+  "FLARE + NCEP GEFS" = "#51C2B9",
+  "FLARE + ECMWF IFS" = "#CD4528"
+)
+relabel_model <- function(x) {
+  labeled <- model_labels[x]
+  ifelse(is.na(labeled), x, unname(labeled))
+}
+
 interest_site <- 'ORMS'
+focal_depths <- c(0.5, 5.0)
 
 ### READ IN INSITU TARGETS
 lake_directory <- getwd()
@@ -42,17 +57,14 @@ Sys.setenv("AWS_REQUEST_CHECKSUM_CALCULATION" = "when_required",
 
 insitu_obs_url<- "https://amnh1.osn.mghpcc.org/bio230121-bucket01/flare/targets/ORMS/ORMS-targets-insitu.csv"
 
-obs_cleaned <- readr::read_csv(insitu_obs_url) |> 
-  filter(variable %in% c('temperature')) |> #, # was TEMP for CANN
-         #depth == 0.5) |> ##insitu sensors and met 
-  #dplyr::filter(is.na(inflow_name)) |> 
-  collect() |> 
+obs_cleaned <- readr::read_csv(insitu_obs_url) |>
+  filter(variable %in% c('temperature')) |>
+  collect() |>
   lubridate::with_tz(datetime, tzone = timezone)
 
 obs_updated <- max(obs_cleaned$datetime,na.rm = TRUE)
 
-
-forecast_schema <- schema(
+forecast_schema <- arrow::schema(
   reference_datetime = timestamp(unit = "us", timezone = "UTC"),
   datetime            = timestamp(unit = "us", timezone = "UTC"),
   pub_datetime         = timestamp(unit = "us", timezone = "UTC"),
@@ -70,14 +82,105 @@ forecast_schema <- schema(
 
 s3 <- arrow::s3_bucket('bio230121-bucket01/flare/forecasts/parquet/site_id=ORMS', endpoint_override = 'amnh1.osn.mghpcc.org', anonymous = TRUE)
 
-most_recent <-  arrow::open_dataset(s3, schema = forecast_schema) |> 
-  filter(model_id == model_identifier) |>
-  summarize(max = max(reference_datetime)) |> 
-  collect() |> 
+most_recent <-  arrow::open_dataset(s3, schema = forecast_schema) |>
+  filter(model_id %in% model_identifiers) |>
+  summarize(max = max(reference_datetime)) |>
+  collect() |>
   pull()
 
 current_time <- round_date(Sys.time(), unit = "minute")
 current_time <- with_tz(current_time, tzone = "Europe/Paris")
+
+## PULL FORECAST DATA (shared by the KPI boxes and both charts below)
+temp_forecast <- arrow::open_dataset(s3, schema = forecast_schema) |>
+  filter(reference_datetime == most_recent,
+         model_id %in% model_identifiers,
+         variable == "temperature",
+         depth %in% focal_depths) |>
+  collect() |>
+  lubridate::with_tz(datetime, tzone = "Europe/Paris") |>
+  lubridate::with_tz(reference_datetime, tzone = "Europe/Paris") |>
+  mutate(depth_labels = paste0("Depth: ", depth, " m"),
+         parameter = paste(model_id, parameter, sep = "_"),
+         model_id = relabel_model(model_id))
+
+mixing_forecast <- arrow::open_dataset(s3, schema = forecast_schema) |>
+  mutate(parameter = as.character(parameter)) |>
+  filter(reference_datetime == most_recent,
+         variable == "prob_mixed_density",
+         model_id %in% model_identifiers) |>
+  collect() |>
+  lubridate::with_tz(datetime, tzone = "Europe/Paris") |>
+  lubridate::with_tz(reference_datetime, tzone = "Europe/Paris") |>
+  mutate(model_id = relabel_model(model_id),)
+
+datetimes <- round_date(seq(min(temp_forecast$datetime), max(temp_forecast$datetime), by = "3 days"), unit = "day")
+all_datetimes <- round_date(seq(min(temp_forecast$datetime), max(temp_forecast$datetime), by = "1 days"), unit = "day")
+all_datetimes <- all_datetimes[!(all_datetimes %in% datetimes)]
+
+## KPI summary values (model's first forecast timestep = its post-data-assimilation nowcast)
+kpi_issued <- format(temp_forecast$reference_datetime[1], "%b %d, %Y %H:%M %Z")
+kpi_horizon_days <- round(as.numeric(difftime(max(temp_forecast$datetime), temp_forecast$reference_datetime[1], units = "days")))
+kpi_surface_temp <- temp_forecast |>
+  filter(depth == 0.5, datetime == reference_datetime) |>
+  summarize(mean = mean(prediction, na.rm = TRUE),
+            min = min(prediction, na.rm = TRUE),
+            max = max(prediction, na.rm = TRUE))
+kpi_prob_mixed <- mixing_forecast |>
+  filter(datetime == reference_datetime) |>
+  summarize(value = mean(prediction, na.rm = TRUE)) |>
+  pull(value)
+
+## Adds a "now" text label above each facet panel of a ggplotly object.
+## (The vertical line itself comes from a native geom_vline() in the ggplot
+## call below - plotly::layout(p, shapes = ...) does not merge shapes added
+## after ggplotly() in this plotly version, only annotations do, so the line
+## and the label are added via two different mechanisms.)
+add_now_label <- function(p, now_time) {
+  layout_names <- names(p$x$layout)
+  x_axes <- grep("^xaxis", layout_names, value = TRUE)
+  if (length(x_axes) == 0) x_axes <- "xaxis"
+  y_axes <- grep("^yaxis", layout_names, value = TRUE)
+
+  ## ggplotly() renders this datetime x-axis as type "linear" (raw epoch
+  ## seconds), not "date" - a date string passed as x here can't be parsed
+  ## against a linear axis and silently falls back to position 0 (the left
+  ## edge), so "now" must be given as a plain number in the same units.
+  now_num <- as.numeric(now_time)
+
+  annotations <- lapply(sub("^xaxis", "", x_axes), function(sfx) {
+    yref <- if (paste0("yaxis", sfx) %in% y_axes) paste0("y", sfx, " domain") else "y domain"
+    ## xshift nudges the label a few pixels clear of the vline regardless of
+    ## the axis's data units, since a data-coordinate offset would need to be
+    ## rescaled per-axis (the two charts have very different x-axis spans).
+    list(x = now_num, y = 0.97, xref = paste0("x", sfx), yref = yref,
+         text = "now", showarrow = FALSE, xanchor = "left", yanchor = "top", xshift = 5,
+         font = list(size = 14, color = "#231F20", family = "Poppins"))
+  })
+  plotly::layout(p, annotations = annotations)
+}
+
+## For faceted plots, ggplotly() places the x-axis title as a plain paper
+## annotation instead of using the axis's own "automargin"-aware title, so it
+## doesn't account for the extra height of 45-degree rotated tick labels and
+## ends up overlapping them. Push the title (and the plot's bottom margin)
+## down far enough to clear the rotated labels, and optionally add extra top
+## margin to give the chart title more breathing room above the facet strips.
+## This mutates p$x$layout directly (not via plotly::layout()) because
+## layout() queues annotations to be concatenated at build time rather than
+## editing this one in place, which would leave the axis title duplicated.
+## legend_gap_px adds further bottom margin (without moving the x-axis title
+## itself) so a horizontal legend below the title has more room to sit lower,
+## away from the title, instead of just moving both down together.
+push_down_facet_xtitle <- function(p, extra_px = 25, extra_top_px = 0, legend_gap_px = 0) {
+  annotations <- p$x$layout$annotations
+  idx <- which(vapply(annotations, function(a) identical(a$yref, "paper") && identical(a$y, 0), logical(1)))
+  for (i in idx) annotations[[i]]$yshift <- annotations[[i]]$yshift - extra_px
+  p$x$layout$annotations <- annotations
+  p$x$layout$margin$b <- p$x$layout$margin$b + extra_px + legend_gap_px
+  p$x$layout$margin$t <- p$x$layout$margin$t + extra_top_px
+  p
+}
 ```
 ::: {.callout-note collapse="true"}
 ## Disclaimer
@@ -90,99 +193,164 @@ Welcome to the the Ormstrup Sø (Lake Ormstrup) water temperature forecast dashb
 
 THIS FORECAST IS ONLY A PROOF OF CONCEPT AND SHOULD NOT BE USED FOR DECISION MAKING OR ANY ACCESSMENT OF FORECAST QUALITY
 
-Page last updated on `r current_time` local time.
+## At a Glance {height=15%}
 
-## Most recent forecast
+### Forecast issued
 
 ```{r}
-## WATER TEMPERATURE
-interest_var <- 'temperature'
-interest_site <- 'ORMS'
-day_range <- 14
-focal_depths <- c(0.5, 5.0)
+value_box(
+  title = "Forecast issued",
+  value = kpi_issued,
+  showcase = bs_icon("calendar-check"),
+  theme = "primary"
+)
+```
 
-forecast <- arrow::open_dataset(s3, schema = forecast_schema) |> 
-  filter(reference_datetime == most_recent,
-         variable == "temperature",
-         depth %in% c(focal_depths)) |> 
-  collect() |> 
-  lubridate::with_tz(datetime, tzone = "Europe/Paris") |> 
-  lubridate::with_tz(reference_datetime, tzone = "Europe/Paris") |> 
-  mutate(depth_labels = paste0("Depth: ", depth),
-         parameter = paste(model_id,parameter,sep = "_"),
-         model_id = ifelse(model_id == "flare_glm_v4_ecmwf_ifs025", "FLARE + ECMWF IFS", model_id),
-         model_id = ifelse(model_id == "flare_glm_v4_gefs_seamless", "FLARE + NCEP GEFS",model_id)) 
+### Forecast horizon
 
-datetimes <- round_date(seq(min(forecast$datetime), max(forecast$datetime), by = "3 days"), unit = "day")
-all_datetimes <- round_date(seq(min(forecast$datetime), max(forecast$datetime), by = "1 days"), unit = "day")
-all_datetimes <- all_datetimes[!(all_datetimes %in% datetimes)]
+```{r}
+value_box(
+  title = "Forecast horizon",
+  value = paste(kpi_horizon_days, "days"),
+  showcase = bs_icon("graph-up-arrow"),
+  theme = "secondary"
+)
+```
 
-ggplot(forecast, aes(x = datetime, y = prediction, group = parameter, color = model_id)) +
-  geom_line(alpha = 0.3) +
+### Surface temp now
+
+```{r}
+value_box(
+  title = "Surface temp now (0.5 m)",
+  value = paste0(round(kpi_surface_temp$mean, 1), " °C"),
+  paste0("Range: ", round(kpi_surface_temp$min, 1), "–", round(kpi_surface_temp$max, 1), " °C"),
+  showcase = bs_icon("thermometer-half"),
+  theme = "primary"
+)
+```
+
+### Probability mixed now
+
+```{r}
+value_box(
+  title = "Probability lake is mixed",
+  value = paste0(round(kpi_prob_mixed * 100), "%"),
+  showcase = bs_icon("droplet-half"),
+  theme = "secondary"
+)
+```
+
+## Charts {height=50%}
+
+### Most recent forecast {width=60%}
+
+::: {.card title="Most recent forecast"}
+
+```{r}
+gg_temp <- ggplot(temp_forecast, aes(x = datetime, y = prediction, group = parameter, color = model_id)) +
+  geom_line(alpha = 0.3, linewidth = 0.4) +
+  ## a separate point layer carries the per-row tooltip text - putting a varying
+  ## "text" aes directly on geom_line() makes ggplotly insert a break after every
+  ## point (each point ends up isolated with no line drawn between them at all)
+  geom_point(aes(text = paste0(
+      "Model: ", model_id,
+      "<br>Date: ", format(datetime, "%b %d, %Y %H:%M"),
+      "<br>Depth: ", depth, " m",
+      "<br>Predicted: ", round(prediction, 2), " °C"
+    )), size = 0.3, alpha = 0.3, show.legend = FALSE) +
   geom_vline(aes(xintercept = reference_datetime)) +
   facet_wrap(~depth_labels) +
-  theme_bw() +
-  labs(y = "Water temperature (°C)", color = "Model") +
+  theme_light() +
+  labs(x = "Time", y = "Water temperature (°C)", color = "Model") +
+  scale_color_manual(values = model_colors) +
   scale_x_datetime(breaks = datetimes, minor_breaks = all_datetimes) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        panel.background = element_rect(fill = "#F2F2F2",color = "#F2F2F2"),
-        plot.background = element_rect(fill = "#F2F2F2",color = "#F2F2F2"),
-        legend.background = element_rect(fill = "#F2F2F2",color = "#F2F2F2"),
-        legend.position = "bottom")
+  theme(text = element_text(family = "Poppins"),
+        axis.title = element_text(size = 15),
+        axis.text = element_text(size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+        legend.title = element_text(size = 15),
+        legend.text = element_text(size = 13),
+        legend.position = "bottom",
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA))
+
+ggplotly(gg_temp, tooltip = "text") |>
+  push_down_facet_xtitle(extra_px = 40, extra_top_px = 20, legend_gap_px = 20) |>
+  add_now_label(now_time = temp_forecast$reference_datetime[1]) |>
+  layout(legend = list(orientation = "h", y = -0.35),
+         paper_bgcolor = "transparent", plot_bgcolor = "transparent",
+         font = list(family = "Poppins"),
+         hoverlabel = list(font = list(family = "Poppins")))
 ```
 
-## Probability of Mixing
+:::
+
+### Probability of Mixing {width=40%}
+
+::: {.card title="Probability of Mixing"}
 
 ```{r}
-
-
-
-forecast <- arrow::open_dataset(s3, schema = forecast_schema) |> 
-  mutate(parameter = as.character(parameter)) |> 
-  filter(reference_datetime == most_recent,
-         variable == "prob_mixed_density") |> 
-  collect() |> 
-  lubridate::with_tz(datetime, tzone = "Europe/Paris") |> 
-  lubridate::with_tz(reference_datetime, tzone = "Europe/Paris") |> 
-  mutate(model_id = ifelse(model_id == "flare_glm_v4_ecmwf_ifs025", "FLARE + ECMWF IFS", model_id),
-         model_id = ifelse(model_id == "flare_glm_v4_gefs_seamless", "FLARE + NCEP GEFS",model_id))
-
-ggplot(forecast, aes(x = datetime, y = prediction, color = model_id)) +
-  geom_line() +
+gg_mix <- ggplot(mixing_forecast, aes(x = datetime, y = prediction, color = model_id)) +
+  geom_line(linewidth = 0.6) +
+  ## see note above gg_temp's geom_point() - text must live on a point layer,
+  ## not on geom_line() itself, or ggplotly breaks the line at every point
+  geom_point(aes(text = paste0(
+      "Model: ", model_id,
+      "<br>Date: ", format(datetime, "%b %d, %Y %H:%M"),
+      "<br>Probability mixed: ", scales::percent(prediction, accuracy = 1)
+    )), size = 1.2, show.legend = FALSE) +
   geom_vline(aes(xintercept = reference_datetime)) +
-  theme_bw() +
-  labs(title = "Probability that lake is mixed", y = "Probability", color = "Model") +
-  ylim(0,1.0) +
+  theme_light() +
+  labs(x = "Time", y = "Probability", color = "Model") +
+  scale_color_manual(values = model_colors) +
+  scale_y_continuous(limits = c(0, 1.0), oob = scales::squish, labels = scales::percent) +
   scale_x_datetime(breaks = datetimes, minor_breaks = all_datetimes) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        panel.background = element_rect(fill = "#F2F2F2",color = "#F2F2F2"),
-        plot.background = element_rect(fill = "#F2F2F2",color = "#F2F2F2"),
-        legend.background = element_rect(fill = "#F2F2F2",color = "#F2F2F2"),
-        legend.position = "bottom")
+  theme(text = element_text(family = "Poppins"),
+        axis.title = element_text(size = 15),
+        axis.text = element_text(size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+        legend.title = element_text(size = 15),
+        legend.text = element_text(size = 13),
+        legend.position = "bottom",
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA))
 
+ggplotly(gg_mix, tooltip = "text") |>
+  push_down_facet_xtitle(extra_px = 0, legend_gap_px = 20) |>
+  add_now_label(now_time = mixing_forecast$reference_datetime[1]) |>
+  layout(legend = list(orientation = "h", y = -0.35),
+         paper_bgcolor = "transparent", plot_bgcolor = "transparent",
+         font = list(family = "Poppins"),
+         hoverlabel = list(font = list(family = "Poppins")))
 ```
-## Location
+
+:::
+
+## More info {height=35%}
+
+### Location {width=40%}
 
 ```{r, include=FALSE}
 sites <- suppressMessages(sf::st_read("sites.json"))
 ```
 
-```{r fig.height=5, fig.width=5, echo=FALSE, include=TRUE, message = FALSE}
-#sites <- suppressMessages(sf::st_read("sites.json"))
+```{r, echo=FALSE, message=FALSE}
 leaflet() %>%
   setView(lat = 56.326096, lng = 9.639093, zoom= 13) %>%
   addTiles(group="OSM") %>%
   addProviderTiles(providers$Esri.WorldImagery, group="Imagery") %>%
   addProviderTiles(providers$Esri.WorldTopoMap, group="Topo Map") %>%
-  addLayersControl(baseGroups=c('Imagery','OSM', 'Topo Map')) |> 
+  addLayersControl(baseGroups=c('Imagery','OSM', 'Topo Map')) |>
   addMarkers(data  = sites, popup=~as.character(site_id), group = ~as.character(Partner))#, clusterOptions = markerClusterOptions())
 ```
 
-## Learn more
+### Learn more {width=60%}
 
 ::: {.card title = "How forecasts are created"}
 
-Forecasts are generated using the Forecasting Lakes and Reservoir Ecosystem (FLARE) system.  FLARE combines data assimilation (ensemble Kalman filter), the General Lake Model (GLM), and numerical weather forecasts to generate ensemble water quality forecasts.  It provides depth resolved outputs that include uncertainty from weather forecasts (via ensemble weather forecasts), GLM parameters, and GLM numerical representation of the ecosystem.  The forecasts are automatically generated every day at 13:00 UTC using GitHub Actions.  
+Forecasts are generated using the Forecasting Lakes and Reservoir Ecosystem (FLARE) system.  FLARE combines data assimilation (ensemble Kalman filter), the General Lake Model (GLM), and numerical weather forecasts to generate ensemble water quality forecasts.  It provides depth resolved outputs that include uncertainty from weather forecasts (via ensemble weather forecasts), GLM parameters, and GLM numerical representation of the ecosystem.  The forecasts are automatically generated every day at 13:00 UTC using GitHub Actions.
 
 :::
 
@@ -194,3 +362,8 @@ Learn more about other forecasting applications by the Virginia Tech Center for 
 Learn more about the ongoing research at the Center for Ecosystem Forecasting [here](https://ecoforecast.centers.vt.edu/research.html).
 
 :::
+
+::: {#last-updated-footer}
+Page last updated on `r current_time` Central European Time.
+:::
+
