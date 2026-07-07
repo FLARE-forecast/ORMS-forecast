@@ -155,7 +155,7 @@ add_now_label <- function(p, now_time) {
     ## rescaled per-axis (the two charts have very different x-axis spans).
     list(x = now_num, y = 0.97, xref = paste0("x", sfx), yref = yref,
          text = "now", showarrow = FALSE, xanchor = "left", yanchor = "top", xshift = 5,
-         font = list(size = 14, color = "#231F20", family = "Poppins"))
+         font = list(size = 13, color = "#231F20", family = "Poppins"))
   })
   plotly::layout(p, annotations = annotations)
 }
@@ -172,14 +172,130 @@ add_now_label <- function(p, now_time) {
 ## legend_gap_px adds further bottom margin (without moving the x-axis title
 ## itself) so a horizontal legend below the title has more room to sit lower,
 ## away from the title, instead of just moving both down together.
-push_down_facet_xtitle <- function(p, extra_px = 25, extra_top_px = 0, legend_gap_px = 0) {
+## extra_left_px widens the left margin: the rotated y-axis title is also a
+## paper annotation here, positioned using a left margin that R estimated at
+## render time from its own font metrics for Poppins - since R typically
+## doesn't have Poppins installed and substitutes a narrower fallback font
+## for that measurement, the browser (which does have the real Poppins font
+## loaded) ends up needing a couple more pixels than were reserved, clipping
+## the title against the edge of the plot's SVG canvas without this cushion.
+push_down_facet_xtitle <- function(p, extra_px = 25, extra_top_px = 0, legend_gap_px = 0, extra_left_px = 0) {
   annotations <- p$x$layout$annotations
   idx <- which(vapply(annotations, function(a) identical(a$yref, "paper") && identical(a$y, 0), logical(1)))
   for (i in idx) annotations[[i]]$yshift <- annotations[[i]]$yshift - extra_px
   p$x$layout$annotations <- annotations
   p$x$layout$margin$b <- p$x$layout$margin$b + extra_px + legend_gap_px
   p$x$layout$margin$t <- p$x$layout$margin$t + extra_top_px
+  p$x$layout$margin$l <- p$x$layout$margin$l + extra_left_px
   p
+}
+
+## Fixed pixel font sizes/margins (set above for desktop) don't scale down
+## with the plot's container the way CSS would, so on a narrow phone-width
+## card the same absolute-size legend/axis text and long "2026-07-03"-style
+## tick labels overlap each other badly. This re-lays-out the plot in the
+## browser once its actual container width is known (and again on resize):
+## below ~500px it shrinks text, stacks the legend vertically, and swaps in
+## short "M/D" tick labels instead of full dates; above that it restores the
+## normal desktop sizing/legend defined in the R code below.
+make_responsive <- function(p) {
+  htmlwidgets::onRender(p, "
+    function(el, x) {
+      var monthAbbrev = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      function shortDate(v) {
+        var d = new Date(v * 1000);
+        return monthAbbrev[d.getMonth()] + ' ' + d.getDate();
+      }
+      var lastMobile = null;
+      function apply() {
+        var mobile = el.clientWidth < 500;
+        // Calling Plotly.relayout() unconditionally on every resize event
+        // feeds back into bslib's own ResizeObserver-driven auto-sizing for
+        // fill-container widgets (relayout changes the SVG's rendered size,
+        // which retriggers bslib's resize handler, which can retrigger this
+        // listener again), compounding the plot's height on each cycle.
+        // Only relayout when the mobile/desktop breakpoint actually flips.
+        if (mobile === lastMobile) return;
+        lastMobile = mobile;
+        var update = mobile ? {
+          'legend.orientation': 'v',
+          'legend.x': 0,
+          'legend.xanchor': 'left',
+          'legend.y': -0.15,
+          'legend.font.size': 10,
+          'legend.title.font.size': 10,
+          'xaxis.tickfont.size': 9,
+          'yaxis.tickfont.size': 9,
+          'xaxis.title.font.size': 12,
+          'yaxis.title.font.size': 12
+        } : {
+          'legend.orientation': 'h',
+          'legend.y': -0.22,
+          'legend.font.size': 13,
+          'legend.title.font.size': 13,
+          'xaxis.tickfont.size': 13,
+          'yaxis.tickfont.size': 13,
+          'xaxis.title.font.size': 13,
+          'yaxis.title.font.size': 13
+        };
+        Object.keys(el.layout).filter(function(k) { return /^xaxis/.test(k); }).forEach(function(k) {
+          var ax = el.layout[k];
+          if (ax && ax.tickvals) {
+            if (!ax._origticktext) ax._origticktext = ax.ticktext.slice();
+            update[k + '.ticktext'] = mobile ? ax.tickvals.map(shortDate) : ax._origticktext;
+          }
+        });
+        if (el.layout.yaxis && el.layout.yaxis.title && el.layout.yaxis.title.text) {
+          var yTitle = el.layout.yaxis.title;
+          if (!yTitle._origtext) yTitle._origtext = yTitle.text;
+          var shortTitle = yTitle._origtext
+            .replace('Water temperature', 'Temp')
+            .replace('Probability', 'Prob.');
+          update['yaxis.title.text'] = mobile ? shortTitle : yTitle._origtext;
+        }
+        function shortenTitleText(t) {
+          return t.replace('Water temperature', 'Temp').replace('Probability', 'Prob.');
+        }
+        // Faceted plots render the x/y axis titles and facet strip labels as
+        // plain paper annotations (see push_down_facet_xtitle above) rather
+        // than native axis titles - those go through ggplot's pt-to-px
+        // conversion (~1.33x) while the elements set directly above are
+        // given raw pixel sizes, so restoring an annotation's own original
+        // size would leave it visibly bigger than everything else. Target
+        // the exact same pixel size as the rest of the mobile/desktop set.
+        var annFontSize = mobile ? 10 : 13;
+        if (el.layout.annotations) {
+          el.layout.annotations.forEach(function(a) {
+            if (a.annotationType === 'axis' && a.textangle === -90 && a._origtext === undefined) {
+              a._origtext = a.text;
+            }
+          });
+          update['annotations'] = el.layout.annotations.map(function(a) {
+            var copy = Object.assign({}, a);
+            if (copy.font) {
+              copy.font = Object.assign({}, copy.font, {size: annFontSize});
+            }
+            if (copy._origtext !== undefined) {
+              copy.text = mobile ? shortenTitleText(copy._origtext) : copy._origtext;
+            }
+            return copy;
+          });
+        }
+        Plotly.relayout(el, update);
+      }
+      function syncSize() {
+        // The CSS above pins this widget to a fixed height on desktop/tablet
+        // (see the comment there for why), but Plotly.js only knows to
+        // redraw its SVG to match a new container size when explicitly told
+        // to - CSS alone changes the box, not the rendered plot inside it.
+        Plotly.Plots.resize(el);
+      }
+      apply();
+      syncSize();
+      setTimeout(function() { apply(); syncSize(); }, 0);
+      window.addEventListener('resize', function() { apply(); syncSize(); });
+    }
+  ")
 }
 ```
 ::: {.callout-note collapse="true"}
@@ -189,7 +305,7 @@ The dashboard and all contents thereof and all services are provided on an "as i
 :::
 
 
-Welcome to the the Ormstrup Sø (Lake Ormstrup) water temperature forecast dashboard. Forecasts are generated by the Virginia Tech Center for Ecosystem Forecasting ([CEF](https://www.ecoforecast.centers.vt.edu/)) in collaboration with Aarhus University Institute of Ecoscience partners.
+Welcome to the the Ormstrup Sø (Lake Ormstrup) water temperature forecast dashboard. Forecasts are generated by the [Virginia Tech Center for Ecosystem Forecasting](https://www.ecoforecast.centers.vt.edu/) in collaboration with [Aarhus University Institute of Ecoscience](https://ecos.au.dk/en/) partners.
 
 THIS FORECAST IS ONLY A PROOF OF CONCEPT AND SHOULD NOT BE USED FOR DECISION MAKING OR ANY ACCESSMENT OF FORECAST QUALITY
 
@@ -247,42 +363,65 @@ value_box(
 ::: {.card title="Most recent forecast"}
 
 ```{r}
-gg_temp <- ggplot(temp_forecast, aes(x = datetime, y = prediction, group = parameter, color = model_id)) +
-  geom_line(alpha = 0.3, linewidth = 0.4) +
-  ## a separate point layer carries the per-row tooltip text - putting a varying
-  ## "text" aes directly on geom_line() makes ggplotly insert a break after every
-  ## point (each point ends up isolated with no line drawn between them at all)
-  geom_point(aes(text = paste0(
-      "Model: ", model_id,
-      "<br>Date: ", format(datetime, "%b %d, %Y %H:%M"),
-      "<br>Depth: ", depth, " m",
-      "<br>Predicted: ", round(prediction, 2), " °C"
-    )), size = 0.3, alpha = 0.3, show.legend = FALSE) +
-  geom_vline(aes(xintercept = reference_datetime)) +
-  facet_wrap(~depth_labels) +
-  theme_light() +
-  labs(x = "Time", y = "Water temperature (°C)", color = "Model") +
-  scale_color_manual(values = model_colors) +
-  scale_x_datetime(breaks = datetimes, minor_breaks = all_datetimes) +
-  theme(text = element_text(family = "Poppins"),
-        axis.title = element_text(size = 15),
-        axis.text = element_text(size = 12),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
-        legend.title = element_text(size = 15),
-        legend.text = element_text(size = 13),
-        legend.position = "bottom",
-        panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background = element_rect(fill = "transparent", color = NA),
-        legend.background = element_rect(fill = "transparent", color = NA))
+## Two depth panels side by side get crushed to ~150px wide each on a phone,
+## so build the temperature chart as a function of facet column count: the
+## default (side by side) for desktop/tablet, and ncol=1 (stacked, each panel
+## full width) for a second widget shown only on narrow screens (see the
+## .desktop-chart/.mobile-chart CSS toggle in style.css).
+build_temp_widget <- function(ncol_facets = NULL) {
+  gg_temp <- ggplot(temp_forecast, aes(x = datetime, y = prediction, group = parameter, color = model_id)) +
+    geom_line(alpha = 0.3, linewidth = 0.4) +
+    ## a separate point layer carries the per-row tooltip text - putting a varying
+    ## "text" aes directly on geom_line() makes ggplotly insert a break after every
+    ## point (each point ends up isolated with no line drawn between them at all)
+    geom_point(aes(text = paste0(
+        "Model: ", model_id,
+        "<br>Date: ", format(datetime, "%b %d, %Y %H:%M"),
+        "<br>Depth: ", depth, " m",
+        "<br>Predicted: ", round(prediction, 2), " °C"
+      )), size = 0.3, alpha = 0.3, show.legend = FALSE) +
+    geom_vline(aes(xintercept = reference_datetime)) +
+    facet_wrap(~depth_labels, ncol = ncol_facets) +
+    theme_light() +
+    labs(x = NULL, y = "Water temperature (°C)", color = "Model") +
+    scale_color_manual(values = model_colors) +
+    scale_x_datetime(breaks = datetimes, minor_breaks = all_datetimes, date_labels = "%b %d") +
+    theme(text = element_text(family = "Poppins", size = 13),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          strip.text = element_text(size = 13, color = "white"),
+          strip.background = element_rect(fill = "gray30", color = NA),
+          legend.position = "bottom",
+          panel.background = element_rect(fill = "transparent", color = NA),
+          plot.background = element_rect(fill = "transparent", color = NA),
+          legend.background = element_rect(fill = "transparent", color = NA))
 
-ggplotly(gg_temp, tooltip = "text") |>
-  push_down_facet_xtitle(extra_px = 40, extra_top_px = 20, legend_gap_px = 20) |>
-  add_now_label(now_time = temp_forecast$reference_datetime[1]) |>
-  layout(legend = list(orientation = "h", y = -0.35),
-         paper_bgcolor = "transparent", plot_bgcolor = "transparent",
-         font = list(family = "Poppins"),
-         hoverlabel = list(font = list(family = "Poppins")))
+  ggplotly(gg_temp, tooltip = "text") |>
+    push_down_facet_xtitle(extra_px = 40, extra_top_px = 20, legend_gap_px = 5, extra_left_px = 10) |>
+    add_now_label(now_time = temp_forecast$reference_datetime[1]) |>
+    layout(legend = list(orientation = "h", y = -0.22),
+           paper_bgcolor = "transparent", plot_bgcolor = "transparent",
+           font = list(family = "Poppins"),
+           hoverlabel = list(font = list(family = "Poppins"))) |>
+    config(displayModeBar = FALSE) |>
+    make_responsive()
+}
 ```
+
+::: {.desktop-chart}
+
+```{r}
+build_temp_widget()
+```
+
+:::
+
+::: {.mobile-chart}
+
+```{r}
+build_temp_widget(ncol_facets = 1)
+```
+
+:::
 
 :::
 
@@ -302,28 +441,26 @@ gg_mix <- ggplot(mixing_forecast, aes(x = datetime, y = prediction, color = mode
     )), size = 1.2, show.legend = FALSE) +
   geom_vline(aes(xintercept = reference_datetime)) +
   theme_light() +
-  labs(x = "Time", y = "Probability", color = "Model") +
+  labs(x = NULL, y = "Probability", color = "Model") +
   scale_color_manual(values = model_colors) +
   scale_y_continuous(limits = c(0, 1.0), oob = scales::squish, labels = scales::percent) +
-  scale_x_datetime(breaks = datetimes, minor_breaks = all_datetimes) +
-  theme(text = element_text(family = "Poppins"),
-        axis.title = element_text(size = 15),
-        axis.text = element_text(size = 12),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
-        legend.title = element_text(size = 15),
-        legend.text = element_text(size = 13),
+  scale_x_datetime(breaks = datetimes, minor_breaks = all_datetimes, date_labels = "%b %d") +
+  theme(text = element_text(family = "Poppins", size = 13),
+        axis.text.x = element_text(angle = 45, hjust = 1),
         legend.position = "bottom",
         panel.background = element_rect(fill = "transparent", color = NA),
         plot.background = element_rect(fill = "transparent", color = NA),
         legend.background = element_rect(fill = "transparent", color = NA))
 
 ggplotly(gg_mix, tooltip = "text") |>
-  push_down_facet_xtitle(extra_px = 0, legend_gap_px = 20) |>
+  push_down_facet_xtitle(extra_px = 0, legend_gap_px = 5) |>
   add_now_label(now_time = mixing_forecast$reference_datetime[1]) |>
-  layout(legend = list(orientation = "h", y = -0.35),
+  layout(legend = list(orientation = "h", y = -0.22),
          paper_bgcolor = "transparent", plot_bgcolor = "transparent",
          font = list(family = "Poppins"),
-         hoverlabel = list(font = list(family = "Poppins")))
+         hoverlabel = list(font = list(family = "Poppins"))) |>
+  config(displayModeBar = FALSE) |>
+  make_responsive()
 ```
 
 :::
@@ -350,7 +487,11 @@ leaflet() %>%
 
 ::: {.card title = "How forecasts are created"}
 
-Forecasts are generated using the Forecasting Lakes and Reservoir Ecosystem (FLARE) system.  FLARE combines data assimilation (ensemble Kalman filter), the General Lake Model (GLM), and numerical weather forecasts to generate ensemble water quality forecasts.  It provides depth resolved outputs that include uncertainty from weather forecasts (via ensemble weather forecasts), GLM parameters, and GLM numerical representation of the ecosystem.  The forecasts are automatically generated every day at 13:00 UTC using GitHub Actions.
+Forecasts are generated using the Forecasting Lakes and Reservoir Ecosystem (FLARE) system.  FLARE combines data assimilation (Ensemble Kalman Filter), the General Lake Model (GLM), and numerical weather forecasts to generate ensemble water quality forecasts.  It provides depth resolved outputs that include uncertainty from weather forecasts (via ensemble weather forecasts), GLM parameters, and GLM numerical representation of the ecosystem.  The forecasts are automatically generated every day at 13:00 UTC using GitHub Actions.
+
+The forecasts presented here are driven by two different numerical weather forecast models.  The NCEF GEFS (National Center for Environmental Prediction Global Ensemble Forecasting System) a 31-ensemble member forecast at the 0.25° resolution.  The ECMWF IFS (European Centre for Medium-Range Weather Forecasts Integrated Forecasting System) is a 51-ensemble member forecast at the the 0.25° resolution. Both forecast products are accessed through <https://open-meteo.com>.
+
+The probability of mixing is calculated by comparing the density at the top and bottom of the lake for each ensemble and determining the percentage of ensemble members with a density difference of less than 0.1 kg/m3
 
 :::
 
