@@ -223,24 +223,28 @@ make_responsive <- function(p) {
           'legend.xanchor': 'left',
           'legend.y': -0.15,
           'legend.font.size': 10,
-          'legend.title.font.size': 10,
-          'xaxis.tickfont.size': 9,
-          'yaxis.tickfont.size': 9,
-          'xaxis.title.font.size': 12,
-          'yaxis.title.font.size': 12
+          'legend.title.font.size': 10
         } : {
           'legend.orientation': 'h',
           'legend.y': -0.22,
           'legend.font.size': 13,
-          'legend.title.font.size': 13,
-          'xaxis.tickfont.size': 13,
-          'yaxis.tickfont.size': 13,
-          'xaxis.title.font.size': 13,
-          'yaxis.title.font.size': 13
+          'legend.title.font.size': 13
         };
-        Object.keys(el.layout).filter(function(k) { return /^xaxis/.test(k); }).forEach(function(k) {
+        var tickSize = mobile ? 9 : 13;
+        var titleSize = mobile ? 12 : 13;
+        // A stacked (ncol=1) mobile facet layout gets its own x/y axis per
+        // panel (xaxis2, yaxis2, ...), unlike the side-by-side desktop
+        // layout where panels share one y-axis - looping over every axis
+        // key found, rather than hardcoding 'xaxis'/'yaxis', is what makes
+        // this apply consistently to every panel instead of just the first.
+        Object.keys(el.layout).filter(function(k) { return /^xaxis/.test(k) || /^yaxis/.test(k); }).forEach(function(k) {
+          update[k + '.tickfont.size'] = tickSize;
+          update[k + '.title.font.size'] = titleSize;
+          // Only x-axes carry the 'M/D'-style date ticktext to shorten -
+          // y-axes are numeric (temperature/probability), and running them
+          // through shortDate() would misread those values as timestamps.
           var ax = el.layout[k];
-          if (ax && ax.tickvals) {
+          if (/^xaxis/.test(k) && ax && ax.tickvals) {
             if (!ax._origticktext) ax._origticktext = ax.ticktext.slice();
             update[k + '.ticktext'] = mobile ? ax.tickvals.map(shortDate) : ax._origticktext;
           }
