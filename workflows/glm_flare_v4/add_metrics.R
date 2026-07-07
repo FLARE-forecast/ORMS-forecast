@@ -1,33 +1,3 @@
-  # dummy testing data
-  # in_area = seq(5e6, 10, length = 20)
-  # in_depth_area = seq(0, 20, length = 20)
-  # in_temp = c(seq(25, 20, length = 10), seq(20, 15, length = 5), rep(10, 5))
-  # in_depth_temp = in_depth_area
-  #
-  # df <- rbind(data.frame(time = as.Date('2027-07-04'), in_temp = in_temp,
-  #                        in_depth_temp = in_depth_temp),
-  #             data.frame(time = as.Date('2027-07-05'), in_temp = in_temp + 1.5,
-  #                        in_depth_temp = in_depth_temp))
-  #
-  #
-  #
-  # results <- split(df, df$time)
-  #
-  # out_df <- map_dfr(names(results), function(t) {
-  #   cbind(
-  #     time = as.Date(t),
-  #     core_metrics(
-  #       in_temp = results[[t]]$in_temp,
-  #       in_depth_temp = results[[t]]$in_depth_temp
-  #     )
-  #   )
-  # })
-  #
-  # out_df_fc <- reshape2::melt(out_df, id = 'time') %>% arrange(time)
-  #
-
-
-
 core_metrics <- function(in_temp, in_depth_temp, dz = 0.1,
                          g = 9.81){
 
@@ -57,13 +27,15 @@ core_metrics <- function(in_temp, in_depth_temp, dz = 0.1,
     4760.8, 3327.6, 2611, 2611, 2611
   )
 
-  max_depth <- max(in_depth_area, in_depth_temp)
+  max_depth <- max(in_depth_area, in_depth_temp, na.rm = T)
 
   depth <- seq(0, max_depth, by = dz)
 
   area <- approx(x = in_depth_area, y = in_area, xout = depth, method = 'linear', rule = 2)$y
+
   temp <- approx(x = in_depth_temp, y = in_temp, xout = depth, method = 'linear', rule = 2)$y
 
+  temp <- zoo::na.approx(temp)
   # ---- Center of Volume ----
   # z_v = (∫ z A dz) / (∫ A dz)
   V = trapz(area, depth) * (-1)
@@ -169,24 +141,47 @@ add_metrics <- function(use_s3, site_id, forecast_start_datetime, sim_name, buck
   threshold <- 0.1
 
 
-  ## ASSUMIGN THAT FORECAST_DF IS LONG WITH DATETIME, DEPTH, TEMPERATURE
-  stability_metrics <- core_metrics(in_temp = forecast_df %>% filter(variable == "temperature"))
 
-  results <- split(stability_metrics, stability_metrics$datetime)
+  # implementation of physical mixing metrics -------------------------------
 
-  out_df <- map_dfr(names(results), function(t) {
-    cbind(
-      time = as.Date(t),
+  # parameter = ensemble member number
+  # datetime =  the datetime that the forecast applies.
+  # reference_datetime = start of the 14-day ahead forecast
+
+  physics_forecast <- forecast_df %>% filter(variable == "temperature") %>%
+    group_by(datetime, reference_datetime, parameter) %>%
+    group_modify(~ {
+
       core_metrics(
-        in_temp = results[[t]]$in_temp,
-        in_depth_temp = results[[t]]$in_depth_temp
+        in_temp = .x$prediction,
+        in_depth_temp = .x$depth
       )
-    )
-  })
 
-  out_df_fc <- reshape2::melt(out_df, id = 'time') %>% arrange(time)
-  ## METRICS OUTPUT
+    })
 
+  mix_physics_df <- physics_forecast %>%
+    pivot_longer(
+      cols = Ws:last_col(),
+      names_to = "variable",
+      values_to = "prediction"
+    ) %>%
+
+    left_join(
+      forecast_df %>% select(pub_datetime, model_id, datetime, reference_datetime, parameter),
+      by = c('datetime', 'reference_datetime', 'parameter')
+    ) %>%  distinct() %>%
+
+    dplyr::mutate(family = "bernoulli", #something else
+                  parameter = "prob", # something else
+                  depth = NA,
+                  datetime = lubridate::as_datetime(datetime),
+                  variable_type = "diagnostic",
+                  reference_date = as.character(as_date(reference_datetime)),
+                  log_weight = 0,
+                  forecast = NA,) |>
+    dplyr::select(names(forecast_df))
+
+  ###
 
   temp_forecast <- forecast_df |>
     filter(variable == "temperature",
@@ -215,7 +210,7 @@ add_metrics <- function(use_s3, site_id, forecast_start_datetime, sim_name, buck
   forecast_df <- forecast_df |>
     mutate(parameter = as.character(parameter))
 
-  combined_df <- bind_rows(forecast_df, mix_binary_df) |>
+  combined_df <- bind_rows(forecast_df, mix_binary_df, mix_physics_df) |>
     mutate(site_id = site_id)
 
 
