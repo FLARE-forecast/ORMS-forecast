@@ -8,6 +8,8 @@
     color: #FFFFFF;
 }
 
+.card[data-title="Most recent forecast"] .card-header,
+.card[data-title="Probability of Mixing"] .card-header,
 .card[data-title="How forecasts are created"] .card-header,
 .card[data-title="Relevant research from the Virginia Tech Center for Ecosystem Forecasting"] .card-header {
     background-color: #CD4528;
@@ -107,7 +109,7 @@
         flex: 0 0 300px !important;
         height: 300px !important;
     }
-    .card[data-title="Relevant Research from the Virginia Tech Center for Ecosystem Forecasting"] {
+    .card[data-title="Relevant research from the Virginia Tech Center for Ecosystem Forecasting"] {
         flex: 0 0 220px !important;
         height: 220px !important;
     }
