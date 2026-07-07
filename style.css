@@ -18,3 +18,96 @@
     box-shadow: none;
     background-color: transparent;
 }
+
+/* On mobile, the "Charts" row's two columns stack instead of sitting side by
+   side, but the row keeps its desktop-oriented percentage height, so each
+   stacked plot gets squeezed into a sliver. Forcing a minimum height here
+   lets each chart's card grow past that budget (the dashboard already has
+   scrolling: true, so the page just scrolls further instead of clipping). */
+@media (max-width: 767.98px) {
+    .card[data-title="Probability of Mixing"] {
+        min-height: 420px;
+    }
+    .card[data-title="Probability of Mixing"] .js-plotly-plot {
+        min-height: 380px;
+    }
+    .card[data-title="Most recent forecast"] {
+        min-height: 760px;
+    }
+    .mobile-chart .js-plotly-plot {
+        min-height: 700px;
+    }
+}
+
+/* "Most recent forecast" renders two depth panels. Side by side they're
+   readable on a wide screen but crushed to ~150px each on a phone, so a
+   second widget with the same panels stacked full-width is rendered for
+   narrow viewports instead, and only one of the two is ever shown. */
+.mobile-chart {
+    display: none;
+}
+@media (max-width: 767.98px) {
+    .desktop-chart {
+        display: none;
+    }
+    .mobile-chart {
+        display: block;
+    }
+}
+
+/* With `scrolling: true`, the dashboard's outer container is height:auto
+   (sized to its content) rather than a fixed 100vh, but quarto still gives
+   its top-level row-tracks `fr` units (minmax(3em, 15fr) 50fr 35fr), which
+   need a definite container height to divide up. That's a circular
+   dependency - the container's height depends on its rows' content, but the
+   rows' heights (in fr units) depend on the container's height - and the
+   browser can converge on a wildly inflated total (thousands of px instead
+   of naturally fitting the content), leaving a huge gap around every row's
+   actual content. Since every card below gets an explicit fixed height
+   anyway, switching these tracks to `auto` (size-to-content) instead of `fr`
+   (proportional-of-container) breaks the circularity entirely. */
+.dashboard-scrolling > .bslib-grid-item.bslib-grid {
+    grid-template-rows: auto auto auto !important;
+}
+
+/* These widgets are also flex items with `flex: 1 1 auto` (from bslib's
+   .html-fill-item rule), so an explicit height alone still gets overridden
+   by flex-grow stretching them to fill their (now content-sized, but still
+   flexible) row - flex-grow has to be turned off (flex: 0 0 <height>) for
+   the height to actually stick. make_responsive() then explicitly resizes
+   the plot to match via Plotly.Plots.resize(), since CSS alone doesn't tell
+   Plotly.js to redraw its SVG at the new size. */
+@media (min-width: 768px) {
+    .card[data-title="Most recent forecast"] .js-plotly-plot,
+    .card[data-title="Probability of Mixing"] .js-plotly-plot {
+        flex: 0 0 420px !important;
+        height: 420px !important;
+    }
+    /* Same circular-sizing/flex-grow issue (see above) also inflates every
+       other row on the dashboard to varying degrees, since none of their
+       cards have a plotly widget to anchor them back down cosmetically the
+       way the Charts row's flex fix does. Same treatment, different rows. */
+    .bslib-value-box {
+        flex: 0 0 150px !important;
+        height: 150px !important;
+    }
+    .card[data-title="Most recent forecast"],
+    .card[data-title="Probability of Mixing"] {
+        flex: 0 0 480px !important;
+        height: 480px !important;
+    }
+    /* Matches the combined height of the two "About" cards beside it
+       (300px + 220px + the 17px gap between them). */
+    .card:has(.leaflet-container) {
+        flex: 0 0 537px !important;
+        height: 537px !important;
+    }
+    .card[data-title="How forecasts are created"] {
+        flex: 0 0 300px !important;
+        height: 300px !important;
+    }
+    .card[data-title="Relevant Research from the Virginia Tech Center for Ecosystem Forecasting"] {
+        flex: 0 0 220px !important;
+        height: 220px !important;
+    }
+}
