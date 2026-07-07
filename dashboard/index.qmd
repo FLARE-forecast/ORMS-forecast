@@ -26,6 +26,7 @@ library(bsicons)
 library(leaflet)
 library(oce)
 library(plotly)
+library(crosstalk)
 
 build_day <- Sys.Date()
 
@@ -373,17 +374,23 @@ value_box(
 ## full width) for a second widget shown only on narrow screens (see the
 ## .desktop-chart/.mobile-chart CSS toggle in style.css).
 build_temp_widget <- function(ncol_facets = NULL) {
-  gg_temp <- ggplot(temp_forecast, aes(x = datetime, y = prediction, group = parameter, color = model_id)) +
-    geom_line(alpha = 0.3, linewidth = 0.4) +
-    ## a separate point layer carries the per-row tooltip text - putting a varying
-    ## "text" aes directly on geom_line() makes ggplotly insert a break after every
-    ## point (each point ends up isolated with no line drawn between them at all)
-    geom_point(aes(text = paste0(
+  # 1. Map your Crosstalk key
+  shared_df <- highlight_key(temp_forecast, ~parameter)
+  
+  gg_temp <- ggplot(shared_df, aes(x = datetime, y = prediction, group = parameter, color = model_id)) +
+    # Ensure lines map cleanly to the crosstalk parameter group
+    geom_line(alpha = 0.2, linewidth = 0.4) +
+    
+    # Explicitly reinforce the group aesthetic to bind the point hover tooltips to the crosstalk key
+    geom_point(aes(
+      group = parameter, 
+      text = paste0(
         "Model: ", model_id,
         "<br>Date: ", format(datetime, "%b %d, %Y %H:%M"),
         "<br>Depth: ", depth, " m",
         "<br>Predicted: ", round(prediction, 2), " °C"
-      )), size = 0.3, alpha = 0.3, show.legend = FALSE) +
+      )), size = 0.3, alpha = 0.2, show.legend = FALSE) +
+    
     geom_vline(aes(xintercept = reference_datetime)) +
     facet_wrap(~depth_labels, ncol = ncol_facets) +
     theme_light() +
@@ -402,12 +409,25 @@ build_temp_widget <- function(ncol_facets = NULL) {
           legend.background = element_rect(fill = "transparent", color = NA))
 
   ggplotly(gg_temp, tooltip = "text") |>
+    # 2. Reconfigure highlight to work safely on both lines and markers
+    highlight(
+      on = "plotly_click",        # Changed to click since selection brush is hidden
+      off = "plotly_doubleclick",
+      opacityDim = 0.2,       
+      selected = attrs_selected(
+        opacity = 1,              # Removed marker = list(color) to avoid crashing line geometries
+        line = list( color = "black")
+      )
+    ) |>
     push_down_facet_xtitle(extra_px = 40, extra_top_px = 20, legend_gap_px = 5, extra_left_px = 10) |>
     add_now_label(now_time = temp_forecast$reference_datetime[1]) |>
-    layout(legend = list(orientation = "h", y = -0.22),
-           paper_bgcolor = "transparent", plot_bgcolor = "transparent",
-           font = list(family = "Poppins"),
-           hoverlabel = list(font = list(family = "Poppins"))) |>
+    layout(
+      legend = list(orientation = "h", y = -0.22),
+      paper_bgcolor = "transparent", 
+      plot_bgcolor = "transparent",
+      font = list(family = "Poppins"),
+      hoverlabel = list(font = list(family = "Poppins"))
+    ) |>
     config(displayModeBar = FALSE) |>
     make_responsive()
 }
