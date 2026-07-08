@@ -126,7 +126,8 @@ for(i in starting_index:nrow(sims)){
               sim_name = config$run_config$sim_name,
               bucket = config$s3$forecasts_parquet$bucket,
               endpoint = config$s3$forecasts_parquet$endpoint,
-              local_dir = file.path(lake_directory, "forecasts", "parquet"))
+              local_dir = file.path(lake_directory, "forecasts", "parquet"),
+              nml_file = file.path(lake_directory, "configuration", config_set_name, "glm3.nml"))
 
   targets_df <- read_csv(file.path(lake_directory, "targets", config$location$site_id, config$da_setup$obs_filename))
 

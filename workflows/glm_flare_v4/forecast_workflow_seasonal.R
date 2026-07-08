@@ -44,7 +44,8 @@ add_metrics(use_s3 = config$run_config$use_s3,
             sim_name = config$run_config$sim_name,
             bucket = config$s3$forecasts_parquet$bucket,
             endpoint = config$s3$forecasts_parquet$endpoint,
-            local_dir = file.path(lake_directory, "forecasts", "parquet"))
+            local_dir = file.path(lake_directory, "forecasts", "parquet"),
+            nml_file = file.path(lake_directory, "configuration", config_set_name, "glm3.nml"))
 
 
 forecast_start_datetime <- lubridate::as_datetime(config$run_config$forecast_start_datetime) + lubridate::days(7)
