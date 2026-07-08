@@ -149,7 +149,7 @@ add_metrics <- function(use_s3, site_id, forecast_start_datetime, sim_name, buck
   # reference_datetime = start of the 14-day ahead forecast
 
   physics_forecast <- forecast_df %>% filter(variable == "temperature") %>%
-    group_by(datetime, reference_datetime, parameter) %>%
+    group_by(datetime, reference_datetime, parameter, model_id, pub_datetime) %>%
     group_modify(~ {
 
       core_metrics(
@@ -165,20 +165,13 @@ add_metrics <- function(use_s3, site_id, forecast_start_datetime, sim_name, buck
       names_to = "variable",
       values_to = "prediction"
     ) %>%
-
-    left_join(
-      forecast_df %>% select(pub_datetime, model_id, datetime, reference_datetime, parameter),
-      by = c('datetime', 'reference_datetime', 'parameter')
-    ) %>%  distinct() %>%
-
-    dplyr::mutate(family = "bernoulli", #something else
-                  parameter = "prob", # something else
+    dplyr::mutate(family = "ensemble", #something else
                   depth = NA,
-                  datetime = lubridate::as_datetime(datetime),
                   variable_type = "diagnostic",
                   reference_date = as.character(as_date(reference_datetime)),
                   log_weight = 0,
-                  forecast = NA,) |>
+                  forecast = NA,
+                  ) |>
     dplyr::select(names(forecast_df))
 
   ###

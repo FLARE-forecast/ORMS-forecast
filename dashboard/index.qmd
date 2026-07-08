@@ -522,7 +522,7 @@ ggplotly(gg_mix, tooltip = "text") |>
 
 :::: {.callout-note collapse="true"}
 ## More info
-The probability of mixing is calculated by comparing the density at the top and bottom of the lake for each ensemble member and determining the percentage of ensemble members with a density difference of less than 0.1 kg/m3
+The probability of mixing is calculated by comparing the density at the top and bottom of the lake for each ensemble member and determining the percentage of ensemble members with a density difference of less than 0.1 kg/m3.
 ::::
 
 :::
@@ -551,7 +551,7 @@ leaflet() %>%
 
 Forecasts are generated using the Forecasting Lakes and Reservoir Ecosystem (FLARE) system.  FLARE combines data assimilation (Ensemble Kalman Filter), the General Lake Model (GLM), and numerical weather forecasts to generate ensemble water quality forecasts.  It provides depth resolved outputs that include uncertainty from weather forecasts (via ensemble weather forecasts), GLM parameters, and GLM numerical representation of the ecosystem.  The forecasts are automatically generated every day at 13:00 UTC using GitHub Actions.
 
-The forecasts presented here are driven by two different numerical weather forecast models.  The NCEF GEFS (National Center for Environmental Prediction Global Ensemble Forecasting System) is a 31-ensemble member forecast at the 0.25° resolution.  The ECMWF IFS (European Centre for Medium-Range Weather Forecasts Integrated Forecasting System) is a 51-ensemble member forecast at the the 0.25° resolution. Both forecast products are accessed through <https://open-meteo.com>.
+The forecasts presented here are driven by two different numerical weather forecast models.  The NCEF GEFS (National Center for Environmental Prediction Global Ensemble Forecasting System) is a 31-ensemble member forecast at the 0.25° resolution.  The ECMWF IFS (European Centre for Medium-Range Weather Forecasts Integrated Forecasting System) is a 51-ensemble member forecast at the the 0.25° resolution. Both weather forecast products are accessed through <https://open-meteo.com>.
 
 :::
 
