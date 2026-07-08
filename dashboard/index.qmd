@@ -392,11 +392,6 @@ value_box(
 
 ::: {.card title="Most recent forecast"}
 
-:::: {.callout-note collapse="true"}
-## More info
-Each line in the forecast represents an alternative prediction (ensemble member) where the set of prediction forms the forecast uncertainty.  The colors represent predictions that used two different weather models as inputs. Hover over the lines for more information.  Clicking a line shows a selected ensemble member at both depths. 
-::::
-
 ```{r}
 ## Two depth panels side by side get crushed to ~150px wide each on a phone,
 ## so build the temperature chart as a function of facet column count: the
@@ -480,16 +475,16 @@ build_temp_widget(ncol_facets = 1)
 
 :::
 
+:::: {.callout-note collapse="true"}
+## More info
+Each line in the forecast represents an alternative prediction (ensemble member) where the set of prediction forms the forecast uncertainty.  The colors represent predictions that used two different weather models as inputs. Hover over the lines for more information.  Clicking a line shows a selected ensemble member at both depths.
+::::
+
 :::
 
 ### Probability of Mixing {width=40%}
 
 ::: {.card title="Probability of Mixing"}
-
-:::: {.callout-note collapse="true"}
-## More info
-The probability of mixing is calculated by comparing the density at the top and bottom of the lake for each ensemble member and determining the percentage of ensemble members with a density difference of less than 0.1 kg/m3
-::::
 
 ```{r}
 gg_mix <- ggplot(mixing_forecast, aes(x = datetime, y = prediction, color = model_id)) +
@@ -524,6 +519,11 @@ ggplotly(gg_mix, tooltip = "text") |>
   config(displayModeBar = FALSE) |>
   make_responsive()
 ```
+
+:::: {.callout-note collapse="true"}
+## More info
+The probability of mixing is calculated by comparing the density at the top and bottom of the lake for each ensemble member and determining the percentage of ensemble members with a density difference of less than 0.1 kg/m3
+::::
 
 :::
 
