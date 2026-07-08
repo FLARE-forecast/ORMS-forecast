@@ -3,12 +3,6 @@
 }
 
 .card[data-title="Most recent forecast"] .card-header,
-.card[data-title="Probability of Mixing"] .card-header {
-    background-color: #CD4528;
-    color: #FFFFFF;
-}
-
-.card[data-title="Most recent forecast"] .card-header,
 .card[data-title="Probability of Mixing"] .card-header,
 .card[data-title="How forecasts are created"] .card-header,
 .card[data-title="Relevant research from the Virginia Tech Center for Ecosystem Forecasting"] .card-header {
@@ -20,6 +14,71 @@
     border: none;
     box-shadow: none;
     background-color: transparent;
+}
+
+/* The "More info" callouts inside the temperature chart card and the
+   Probability of Mixing card explaining how to read those charts - scoped
+   to just these cards so the page-level Disclaimer callout at the top isn't
+   affected. Quarto's callout title/body elements are sized in rem (relative
+   to the root font-size), not em, so setting font-size on the outer
+   .callout-note wrapper alone doesn't cascade down to them - each has to be
+   targeted directly. */
+.card[data-title="Most recent forecast"] .callout-note,
+.card[data-title="Probability of Mixing"] .callout-note {
+    font-size: 0.75rem;
+}
+.card[data-title="Most recent forecast"] .callout-title,
+.card[data-title="Most recent forecast"] .callout-header,
+.card[data-title="Probability of Mixing"] .callout-title,
+.card[data-title="Probability of Mixing"] .callout-header {
+    font-size: 0.8rem !important;
+}
+.card[data-title="Most recent forecast"] .callout-body,
+.card[data-title="Probability of Mixing"] .callout-body {
+    font-size: 0.75rem !important;
+}
+.card[data-title="Most recent forecast"] .callout-note,
+.card[data-title="Probability of Mixing"] .callout-note {
+    margin-bottom: 0.5rem;
+}
+.card[data-title="Most recent forecast"] .callout-header,
+.card[data-title="Probability of Mixing"] .callout-header {
+    padding: 0.25rem 0.4rem !important;
+    /* bslib's dashboard fill classes (html-fill-container) force
+       flex-direction: column on this element, stacking the icon/title/
+       chevron instead of the row layout Bootstrap's callout CSS intends. */
+    flex-direction: row !important;
+}
+.card[data-title="Most recent forecast"] .callout-body-container,
+.card[data-title="Probability of Mixing"] .callout-body-container {
+    padding: 0.25rem 0.5rem !important;
+    /* The two cards are different widths, so their callout text wraps to a
+       different number of lines ("Probability of Mixing" wraps one line
+       taller) - pin both to the same height (tight to the longer text, plus
+       a couple px of rounding buffer) so the boxes match without leaving a
+       big empty gap under the shorter "Most recent forecast" text. */
+    min-height: 152px;
+}
+.card[data-title="Most recent forecast"] .callout-body > :first-child,
+.card[data-title="Probability of Mixing"] .callout-body > :first-child {
+    padding-top: 0.2rem !important;
+}
+.card[data-title="Most recent forecast"] .callout-body > :last-child,
+.card[data-title="Probability of Mixing"] .callout-body > :last-child {
+    padding-bottom: 0.2rem !important;
+}
+.card[data-title="Most recent forecast"] .callout-icon,
+.card[data-title="Probability of Mixing"] .callout-icon {
+    display: inline-block;
+    width: 0.9rem !important;
+    height: 0.9rem !important;
+}
+.card[data-title="Most recent forecast"] .callout-btn-toggle,
+.card[data-title="Probability of Mixing"] .callout-btn-toggle {
+    /* The html-fill-item rule gives this flex:1 1 auto, so it grows to fill
+       whatever width is left in the header. Pin it to its content size so
+       it doesn't stretch. */
+    flex: 0 0 auto !important;
 }
 
 /* On mobile, the "Charts" row's two columns stack instead of sitting side by
@@ -94,10 +153,20 @@
         flex: 0 0 150px !important;
         height: 150px !important;
     }
+    /* These two cards used to be pinned to a fixed 480px (tuned back when
+       they held only the chart). Now that each also holds a collapsible
+       "More info" callout above the chart, 480px is too short once the
+       callout is expanded, and the fixed height clipped the chart /
+       forced the card body to scroll internally. The header and the
+       plotly widget above already have their own fixed/pinned heights, so
+       letting the card's own height/flex-basis go back to auto (size to
+       content) is enough to fit header + callout + chart without
+       reintroducing the row-track circularity the fixed height was
+       originally added to avoid. */
     .card[data-title="Most recent forecast"],
     .card[data-title="Probability of Mixing"] {
-        flex: 0 0 480px !important;
-        height: 480px !important;
+        flex: 0 0 auto !important;
+        height: auto !important;
     }
     /* Matches the combined height of the two "About" cards beside it
        (300px + 220px + the 17px gap between them). */
