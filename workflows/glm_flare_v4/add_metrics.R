@@ -92,12 +92,26 @@ core_metrics <- function(in_temp, in_depth_temp, in_depth_area, in_area, dz = 0.
 
 }
 
+get_nml_morphometry <- function(nml_file){
+
+  lines <- readLines(nml_file, warn = FALSE)
+  lines <- sub("!.*$", "", lines)
+
+  get_value <- function(var_name){
+    pattern <- paste0("^\\s*", var_name, "\\s*=")
+    line <- lines[grepl(pattern, lines)][1]
+    value_str <- sub(pattern, "", line)
+    as.numeric(trimws(strsplit(value_str, ",")[[1]]))
+  }
+
+  list(H = get_value("H"), A = get_value("A"))
+}
+
 add_metrics <- function(use_s3, site_id, forecast_start_datetime, sim_name, bucket, endpoint, local_dir, nml_file){
 
-  nml <- glmtools::read_nml(nml_file)
-  H <- glmtools::get_nml_value(nml, "H")
-  in_area <- glmtools::get_nml_value(nml, "A")
-  in_depth_area <- max(H) - H
+  morphometry <- get_nml_morphometry(nml_file)
+  in_area <- morphometry$A
+  in_depth_area <- max(morphometry$H) - morphometry$H
 
   if(use_s3){
     s3 <- arrow::s3_bucket(paste0(bucket, "/site_id=", site_id),
@@ -196,4 +210,3 @@ add_metrics <- function(use_s3, site_id, forecast_start_datetime, sim_name, buck
                        path = s3,
                        partitioning = c("site_id", "model_id","reference_date"))
 }
-
