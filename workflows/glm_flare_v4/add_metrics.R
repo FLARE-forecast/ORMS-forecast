@@ -35,7 +35,7 @@ core_metrics <- function(in_temp, in_depth_temp, in_depth_area, in_area, dz = 0.
   Ws = g * z_mean * rho_mean * (z_g - z_v)
 
   # ---- Metalimnion thickness ----
-  meta_depths <- meta.depths(wtr = temp, depths = depth)
+  meta_depths <- rLakeAnalyzer::meta.depths(wtr = temp, depths = depth)
   delta_meta_depths = meta_depths[2] - meta_depths[1]
 
 
@@ -74,10 +74,10 @@ core_metrics <- function(in_temp, in_depth_temp, in_depth_area, in_area, dz = 0.
   # print(rho_mean)
   # print(Ws)
 
-  z_therm <- thermo.depth(wtr = temp, depths = depth)
-  z_n2 <- center.buoyancy(wtr = temp, depths = depth)
+  z_therm <- rLakeAnalyzer::thermo.depth(wtr = temp, depths = depth)
+  z_n2 <- rLakeAnalyzer::center.buoyancy(wtr = temp, depths = depth)
 
-  n2 <- buoyancy.freq(wtr = temp, depths = depth)
+  n2 <- rLakeAnalyzer::buoyancy.freq(wtr = temp, depths = depth)
   n2_max = max(n2, na.rm = T)
 
   b_z <- - 9.81 * (rho - rho_mean)/(rho_mean)
