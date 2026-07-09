@@ -12,15 +12,15 @@ core_metrics <- function(in_temp, in_depth_temp, in_depth_area, in_area, dz = 0.
   temp <- zoo::na.approx(temp)
   # ---- Center of Volume ----
   # z_v = (∫ z A dz) / (∫ A dz)
-  V = trapz(area, depth) * (-1)
-  z_v = (-1) * trapz(depth * area, depth) / V
+  V = pracma::trapz(area, depth) * (-1)
+  z_v = (-1) * pracma::trapz(depth * area, depth) / V
 
-  rho = water.density(temp)
+  rho = rLakeAnalyzer::water.density(temp)
 
   # ---- Center of Gravity ----
   # z_g(t) = (∫ z rho A dz) / (∫ rho A dz)
-  mass = trapz(rho * area, depth) * (-1)
-  z_g = (-1) * trapz(depth * rho * area, depth) / mass
+  mass = pracma::trapz(rho * area, depth) * (-1)
+  z_g = (-1) * pracma::trapz(depth * rho * area, depth) / mass
 
   # ---- Mean density ----
   # rho_mean(t) = (∫ rho A dz) / (∫ A dz)
