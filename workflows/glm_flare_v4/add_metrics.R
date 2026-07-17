@@ -107,6 +107,41 @@ get_nml_morphometry <- function(nml_file){
   list(H = get_value("H"), A = get_value("A"))
 }
 
+retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seconds = 5){
+
+  stopifnot(is.function(action))
+
+  attempt <- 1
+
+  while(TRUE){
+    result <- tryCatch(
+      list(ok = TRUE, value = action()),
+      error = function(e) list(ok = FALSE, error = e)
+    )
+
+    if(result$ok){
+      return(result$value)
+    }
+
+    is_transient_504 <- grepl("Gateway Timeout \\(HTTP 504\\)|HTTP 504|status 504",
+                              conditionMessage(result$error),
+                              ignore.case = TRUE)
+
+    if(!is_transient_504 || attempt >= max_attempts){
+      stop(result$error)
+    }
+
+    wait_seconds <- initial_wait_seconds * (2 ^ (attempt - 1))
+    message(sprintf("Transient S3 error detected (attempt %d/%d): %s Retrying in %d seconds.",
+                    attempt,
+                    max_attempts,
+                    conditionMessage(result$error),
+                    wait_seconds))
+    Sys.sleep(wait_seconds)
+    attempt <- attempt + 1
+  }
+}
+
 add_metrics <- function(use_s3, site_id, forecast_start_datetime, sim_name, bucket, endpoint, local_dir, nml_file){
 
   morphometry <- get_nml_morphometry(nml_file)
