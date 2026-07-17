@@ -143,10 +143,11 @@ retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seco
     }
 
     wait_seconds <- initial_wait_seconds * (2 ^ (attempt - 1))
-    message(sprintf("Transient S3 error detected (attempt %d/%d): %s Retrying in %d seconds.",
+    error_message <- sub("\\.*$", "", conditionMessage(result$error))
+    message(sprintf("Transient S3 error detected (attempt %d/%d): %s. Retrying in %d seconds.",
                     attempt,
                     max_attempts,
-                    conditionMessage(result$error),
+                    error_message,
                     wait_seconds))
     Sys.sleep(wait_seconds)
   }
