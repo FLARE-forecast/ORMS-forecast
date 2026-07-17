@@ -113,11 +113,18 @@ get_nml_morphometry <- function(nml_file){
 retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seconds = 5){
 
   stopifnot(is.function(action))
+  stopifnot(length(max_attempts) == 1,
+            is.numeric(max_attempts),
+            !is.na(max_attempts),
+            max_attempts >= 1)
+  stopifnot(length(initial_wait_seconds) == 1,
+            is.numeric(initial_wait_seconds),
+            !is.na(initial_wait_seconds),
+            initial_wait_seconds >= 0)
 
-  attempt <- 1
   transient_504_pattern <- "Gateway Timeout \\(HTTP 504\\)|HTTP 504|status 504"
 
-  while(TRUE){
+  for(attempt in seq_len(max_attempts)){
     result <- tryCatch(
       list(ok = TRUE, value = action()),
       error = function(e) list(ok = FALSE, error = e)
@@ -142,7 +149,6 @@ retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seco
                     conditionMessage(result$error),
                     wait_seconds))
     Sys.sleep(wait_seconds)
-    attempt <- attempt + 1
   }
 }
 
