@@ -126,7 +126,7 @@ retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seco
             !is.na(max_wait_seconds),
             max_wait_seconds >= 0)
 
-  transient_504_pattern <- "Gateway Timeout|Gateway Time-out|HTTP 504|\\b504\\b"
+  transient_504_pattern <- "Gateway Timeout|Gateway Time-out|HTTP 504|status\\s*504|code\\s*504"
 
   for(attempt in seq_len(max_attempts)){
     result <- tryCatch(
@@ -149,7 +149,7 @@ retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seco
     wait_seconds <- min(initial_wait_seconds * (2 ^ (attempt - 1)),
                         max_wait_seconds)
     error_message <- sub("\\.+$", "", conditionMessage(result$error))
-    message(sprintf("Transient S3 error detected (attempt %d/%d): %s. Retrying in %d seconds.",
+    message(sprintf("Transient S3 error detected (attempt %d/%d): %s. Retrying in %.1f seconds.",
                     attempt,
                     max_attempts,
                     error_message,
