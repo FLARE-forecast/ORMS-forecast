@@ -110,7 +110,7 @@ get_nml_morphometry <- function(nml_file){
 # Retry a no-argument action when transient S3 gateway timeouts occur.
 # Returns the action result immediately on success, and uses exponential
 # backoff between attempts until max_attempts is reached.
-retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seconds = 5){
+retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seconds = 5, max_wait_seconds = 20){
 
   stopifnot(is.function(action))
   stopifnot(length(max_attempts) == 1,
@@ -121,8 +121,12 @@ retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seco
             is.numeric(initial_wait_seconds),
             !is.na(initial_wait_seconds),
             initial_wait_seconds >= 0)
+  stopifnot(length(max_wait_seconds) == 1,
+            is.numeric(max_wait_seconds),
+            !is.na(max_wait_seconds),
+            max_wait_seconds >= 0)
 
-  transient_504_pattern <- "Gateway Timeout|\\b504\\b"
+  transient_504_pattern <- "Gateway Timeout|Gateway Time-out|HTTP 504|\\b504\\b"
 
   for(attempt in seq_len(max_attempts)){
     result <- tryCatch(
@@ -142,7 +146,8 @@ retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seco
       stop(result$error)
     }
 
-    wait_seconds <- initial_wait_seconds * (2 ^ (attempt - 1))
+    wait_seconds <- min(initial_wait_seconds * (2 ^ (attempt - 1)),
+                        max_wait_seconds)
     error_message <- sub("\\.+$", "", conditionMessage(result$error))
     message(sprintf("Transient S3 error detected (attempt %d/%d): %s. Retrying in %d seconds.",
                     attempt,
