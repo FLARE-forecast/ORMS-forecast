@@ -107,11 +107,15 @@ get_nml_morphometry <- function(nml_file){
   list(H = get_value("H"), A = get_value("A"))
 }
 
+# Retry a no-argument action when transient S3 gateway timeouts occur.
+# Returns the action result immediately on success, and uses exponential
+# backoff between attempts until max_attempts is reached.
 retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seconds = 5){
 
   stopifnot(is.function(action))
 
   attempt <- 1
+  transient_504_pattern <- "Gateway Timeout \\(HTTP 504\\)|HTTP 504|status 504"
 
   while(TRUE){
     result <- tryCatch(
@@ -123,7 +127,7 @@ retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seco
       return(result$value)
     }
 
-    is_transient_504 <- grepl("Gateway Timeout \\(HTTP 504\\)|HTTP 504|status 504",
+    is_transient_504 <- grepl(transient_504_pattern,
                               conditionMessage(result$error),
                               ignore.case = TRUE)
 
