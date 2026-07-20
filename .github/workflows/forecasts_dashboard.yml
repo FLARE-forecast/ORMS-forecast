@@ -35,7 +35,7 @@ jobs:
         shell: Rscript {0}
         run: | 
           GLMAEDr::glm_register_binary("/glm")
-          source("$GITHUB_WORKSPACE/workflows/glm_flare_v4/forecast_workflow.R")
+          source(file.path(Sys.getenv("GITHUB_WORKSPACE"), "workflows/glm_flare_v4/forecast_workflow.R"))
 
       - name: Run automatic prediction file
         env:
@@ -44,7 +44,7 @@ jobs:
         shell: Rscript {0}
         run: |
           GLMAEDr::glm_register_binary("/glm")
-          source("$GITHUB_WORKSPACE/workflows/glm_flare_v4/forecast_workflow_ecmwf_ifs025.R")
+          source(file.path(Sys.getenv("GITHUB_WORKSPACE"), "workflows/glm_flare_v4/forecast_workflow_ecmwf_ifs025.R"))
 
   build-dashboard:
     needs: flare_glm_v4
