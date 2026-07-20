@@ -107,6 +107,57 @@ get_nml_morphometry <- function(nml_file){
   list(H = get_value("H"), A = get_value("A"))
 }
 
+# Retry a no-argument action when transient S3 gateway timeouts occur.
+# Returns the action result immediately on success, and uses exponential
+# backoff between attempts until max_attempts is reached.
+retry_transient_s3_error <- function(action, max_attempts = 3, initial_wait_seconds = 5, max_wait_seconds = 20){
+
+  stopifnot(is.function(action))
+  stopifnot(length(max_attempts) == 1,
+            is.numeric(max_attempts),
+            !is.na(max_attempts),
+            max_attempts >= 1)
+  stopifnot(length(initial_wait_seconds) == 1,
+            is.numeric(initial_wait_seconds),
+            !is.na(initial_wait_seconds),
+            initial_wait_seconds >= 0)
+  stopifnot(length(max_wait_seconds) == 1,
+            is.numeric(max_wait_seconds),
+            !is.na(max_wait_seconds),
+            max_wait_seconds >= 0)
+
+  transient_504_pattern <- "Gateway Timeout|Gateway Time-out|HTTP 504|status\\s*504|code\\s*504"
+
+  for(attempt in seq_len(max_attempts)){
+    result <- tryCatch(
+      list(ok = TRUE, value = action()),
+      error = function(e) list(ok = FALSE, error = e)
+    )
+
+    if(result$ok){
+      return(result$value)
+    }
+
+    is_transient_504 <- grepl(transient_504_pattern,
+                              conditionMessage(result$error),
+                              ignore.case = TRUE)
+
+    if(!is_transient_504 || attempt >= max_attempts){
+      stop(result$error)
+    }
+
+    wait_seconds <- min(initial_wait_seconds * (2 ^ (attempt - 1)),
+                        max_wait_seconds)
+    error_message <- sub("\\.+$", "", conditionMessage(result$error))
+    message(sprintf("Transient S3 error detected (attempt %d/%d): %s. Retrying in %.1f seconds.",
+                    attempt,
+                    max_attempts,
+                    error_message,
+                    wait_seconds))
+    Sys.sleep(wait_seconds)
+  }
+}
+
 add_metrics <- function(use_s3, site_id, forecast_start_datetime, sim_name, bucket, endpoint, local_dir, nml_file){
 
   morphometry <- get_nml_morphometry(nml_file)
