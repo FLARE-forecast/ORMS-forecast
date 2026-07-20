@@ -26,12 +26,14 @@ jobs:
         run: |
           install.packages('rLakeAnalyzer')
           remotes::install_github("flare-forecast/ropenmeteo")
-          GLMAEDr::glm_install()
           install.packages('pracma')
 
       - name: Run automatic prediction file
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run:  Rscript $GITHUB_WORKSPACE/workflows/glm_flare_v4/forecast_workflow.R
+        shell: Rscript {0}
+        run: | 
+          GLMAEDr::glm_register_binary("/glm")
+          source(file.path(Sys.getenv("GITHUB_WORKSPACE"), "workflows/glm_flare_v4/forecast_workflow.R"))
 
