@@ -25,12 +25,15 @@ source(file.path(lake_directory, "workflows", config_set_name, "add_metrics.R"))
 
 config <- FLAREr:::set_up_simulation(configure_run_file,lake_directory, config_set_name = config_set_name, clean_start = reset_run)
 
-FLAREr::flare_get_file(local_file = config$da_setup$obs_filename,
-               remote_file = config$da_setup$obs_filename,
-               server_name = "targets",
-               local_folder = file.path(lake_directory, "targets", config$location$site_id),
-               remote_folder = file.path("flare", "targets", config$location$site_id),
-               config)
+read_csv("https://github.com/computational-limnology/ORM-buoy/blob/main/output/orm_long_processed.csv") |>
+    write_csv(file.path(lake_directory, "targets", config$location$site_id, config$da_setup$obs_filename))
+
+#FLAREr::flare_get_file(local_file = config$da_setup$obs_filename,
+#               remote_file = config$da_setup$obs_filename,
+#               server_name = "targets",
+#               local_folder = file.path(lake_directory, "targets", config$location$site_id),
+#               remote_folder = file.path("flare", "targets", config$location$site_id),
+#               config)
 
 # Run FLARE
 FLAREr::run_flare(lake_directory = lake_directory,
