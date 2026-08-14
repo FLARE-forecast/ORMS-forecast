@@ -45,6 +45,7 @@ SCORE_TOLERANCE <- 1e-2
 
 # =============================================================================
 
+dir.create(dirname(TARGETS_FILE), recursive = TRUE, showWarnings = FALSE)
 readr::read_csv(TARGETS_URL) |>
   mutate(datetime = as_datetime(datetime)) |>
   mutate(depth = ifelse(variable != "temperature", NA, depth)) |>
@@ -109,6 +110,7 @@ if(RESCORE) {
 ## INSTEAD, we pull our subset to local disk first.
 ## This looks silly but is much better for RAM and speed!!
 
+  unlink(TEMP_DIR, recursive = TRUE)
   dir.create(TEMP_DIR, recursive = T, showWarnings = F)
 
   forecasts |>
@@ -155,6 +157,9 @@ score_group <- function(i, groups) {
   # if we want to clear connection manually we need to re-open fc.  Maybe not necessary
   source(SCORE_FUNCTION_SCRIPT)
   con <- duckdbfs::cached_connection(tempfile())
+
+  tryCatch({
+
   fc <- duckdbfs::open_dataset(file.path(TEMP_DIR, "score_me"))
   new_scores <- fc |>
     dplyr::inner_join(groups[i,], copy=TRUE,
@@ -201,8 +206,10 @@ score_group <- function(i, groups) {
     dplyr::group_by(site_id, variable, model_id) |>
     duckdbfs::write_dataset(SCORES_S3_PATH)
 
-  duckdbfs::close_connection(con)
-  gc()
+  }, finally = {
+    duckdbfs::close_connection(con)
+    gc()
+  })
 }
 
 fc <- duckdbfs::open_dataset(file.path(TEMP_DIR, "score_me")) |>
@@ -215,7 +222,7 @@ pb <- progress_bar$new(format = "  scoring [:bar] :percent in :elapsed",
                        total = total, clear = FALSE, width= 60)
 
 # If we have lots to score this can take a while
-for (i in seq_along(row_number(groups))) {
+for (i in seq_len(total)) {
   pb$tick()
   print(paste("Scoring model:", groups$model_id[i], "variable:", groups$variable[i]))
   score_group(i, groups)
