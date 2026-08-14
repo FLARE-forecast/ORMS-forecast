@@ -1,5 +1,6 @@
 #devtools::install_version("duckdb", "1.2.2")
 remotes::install_github('cboettig/duckdbfs', upgrade = 'never')
+remotes::install_github('eco4cast/score4cast')
 
 library(dplyr)
 library(duckdbfs)
@@ -9,6 +10,14 @@ library(stringr)
 library(minioclient)
 library(DBI)
 library(score4cast)
+install_mc()
+
+lake_directory <- file.path(here::here())
+
+readr::read_csv("https://raw.githubusercontent.com/computational-limnology/ORM-buoy/refs/heads/main/output/orm_long_processed.csv") |>
+  mutate(datetime = as_datetime(datetime)) |>
+  readr::write_csv(file.path(lake_directory, "targets", "ORMS", 'ORMS-targets-insitu.csv'))
+
 
 con <- duckdbfs::cached_connection(tempfile())
 
@@ -18,7 +27,7 @@ score_key_cols <- c(obs_key_cols, "model_id", "family", "reference_datetime")
 
 ### Access the targets, forecasts, and scores subsets
 targets <-
-  duckdbfs::open_dataset('/Users/rqthomas/Downloads/delete_me/ORMS-forecast/targets/ORMS/ORMS-targets-insitu.csv',
+  duckdbfs::open_dataset(file.path(lake_directory,'targets/ORMS/ORMS-targets-insitu.csv'),
                recursive = FALSE,
                format = "csv",
                parser_options = list(nullstr = "NA"),
