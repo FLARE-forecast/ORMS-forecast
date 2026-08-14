@@ -4,7 +4,9 @@ library(FLAREr)
 lake_directory <- file.path(here::here())
 setwd(lake_directory)
 
-Sys.setenv('GLM_PATH'= GLMAEDr::glm_path())
+#Sys.setenv('GLM_PATH'= GLMAEDr::glm_path())
+Sys.setenv('GLM_PATH'='/Users/rqthomas/Downloads/delete_me/flare-rs-tutorial-2/binary/macos/glm')
+
 Sys.setenv("AWS_DEFAULT_REGION" = "amnh1",
            "AWS_S3_ENDPOINT" = "osn.mghpcc.org",
            "USE_HTTPS" = TRUE,
@@ -27,6 +29,7 @@ configure_run_file <- "configure_run.yml"
 config <- FLAREr:::set_up_simulation(configure_run_file,lake_directory, config_set_name = config_set_name, clean_start = reset_run)
 
 read_csv("https://raw.githubusercontent.com/computational-limnology/ORM-buoy/refs/heads/main/output/orm_long_processed.csv") |>
+    mutate(datetime = as_datetime(datetime)) |>
     write_csv(file.path(lake_directory, "targets", config$location$site_id, config$da_setup$obs_filename))
 
 #FLAREr::flare_get_file(local_file = config$da_setup$obs_filename,
