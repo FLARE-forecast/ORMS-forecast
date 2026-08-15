@@ -198,6 +198,11 @@ add_metrics <- function(use_s3, site_id, forecast_start_datetime, sim_name, buck
 
   forecast_df <- forecast_df |>
     mutate(parameter = as.character(parameter))
+  mix_physics_df <- mix_physics_df |>
+    mutate(parameter = as.character(parameter))
+  mix_binary_df <- mix_binary_df |>
+    mutate(parameter = as.character(parameter))
+
 
   combined_df <- bind_rows(forecast_df, mix_binary_df, mix_physics_df) |>
     mutate(site_id = site_id)
