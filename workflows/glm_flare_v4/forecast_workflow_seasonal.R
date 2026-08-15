@@ -17,11 +17,7 @@ config_set_name <- "glm_flare_v4"
 reset_run <- FALSE
 
 source(file.path(lake_directory, "workflows", config_set_name, "add_metrics.R"))
-
-#source('./R/generate_forecast_score_arrow.R')
-
-#' Source the R files in the repository
-#walk(list.files(file.path(lake_directory, "R"), full.names = TRUE), source)
+source(file.path(lake_directory, "workflows", config_set_name, "extract_met_forecast.R"))
 
 config <- FLAREr:::set_up_simulation(configure_run_file,lake_directory, config_set_name = config_set_name, clean_start = reset_run)
 
