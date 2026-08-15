@@ -28,5 +28,4 @@ jobs:
           install.packages("progress")
           install.packages("minioclient")
           install.packages("duckdbfs")
-          remotes::install_github('eco4cast/score4cast')
           source(file.path(Sys.getenv("GITHUB_WORKSPACE"), "workflows/glm_flare_v4/scoring.R"))
