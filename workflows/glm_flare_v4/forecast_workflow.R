@@ -19,11 +19,7 @@ config_set_name <- "glm_flare_v4"
 reset_run <- FALSE
 
 source(file.path(lake_directory, "workflows", config_set_name, "add_metrics.R"))
-
-#source('./R/generate_forecast_score_arrow.R')
-
-#' Source the R files in the repository
-#walk(list.files(file.path(lake_directory, "R"), full.names = TRUE), source)
+source(file.path(lake_directory, "workflows", config_set_name, "extract_met_forecast.R"))
 
 configure_run_file <- "configure_run.yml"
 config <- FLAREr:::set_up_simulation(configure_run_file,lake_directory, config_set_name = config_set_name, clean_start = reset_run)
@@ -54,6 +50,16 @@ add_metrics(use_s3 = config$run_config$use_s3,
             endpoint = config$s3$forecasts_parquet$endpoint,
             local_dir = file.path(lake_directory, "forecasts", "parquet"),
             nml_file = file.path(lake_directory, "configuration", config_set_name, "glm3.nml"))
+
+# Extract met ensemble forecast (air temperature, wind speed) and write to the forecast bucket
+extract_met_forecast(met_dir = config$file_path$execute_directory,
+                     met_model_id = config$met$openmeteo_model,
+                     site_id = config$location$site_id,
+                     forecast_start_datetime = config$run_config$forecast_start_datetime,
+                     use_s3 = config$run_config$use_s3,
+                     bucket = config$s3$forecasts_parquet$bucket,
+                     endpoint = config$s3$forecasts_parquet$endpoint,
+                     local_dir = file.path(lake_directory, "forecasts", "parquet"))
 
 forecast_start_datetime <- lubridate::as_datetime(config$run_config$forecast_start_datetime) + lubridate::days(1)
 start_datetime <- forecast_start_datetime - lubridate::days(3)

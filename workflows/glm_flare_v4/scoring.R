@@ -31,6 +31,7 @@ FORECASTS_S3_PATH <- paste0("s3://", S3_BUCKET, "/flare/forecasts/parquet/site_i
 SCORES_S3_SUBPATH <- paste0(S3_BUCKET, "/flare/scores_v2")
 SCORES_S3_PATH <- paste0("s3://", SCORES_S3_SUBPATH)
 SCORES_OSN_PATH <- paste0("osn/", SCORES_S3_SUBPATH)
+mc_alias_set("osn", S3_ENDPOINT, Sys.getenv("AWS_ACCESS_KEY_ID"), Sys.getenv("AWS_SECRET_ACCESS_KEY"))
 
 # Local working directory used to stage data during scoring, and the
 # location of the helper script that implements the scoring calculation.
@@ -42,7 +43,6 @@ SCORE_FUNCTION_SCRIPT <- "workflows/glm_flare_v4/score_joined_table.R"
 RESCORE <- FALSE
 # Relative tolerance used to detect a changed observation when RESCORE = TRUE
 SCORE_TOLERANCE <- 1e-2
-
 # =============================================================================
 
 dir.create(dirname(TARGETS_FILE), recursive = TRUE, showWarnings = FALSE)
