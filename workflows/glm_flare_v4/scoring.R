@@ -54,7 +54,7 @@ readr::read_csv(TARGETS_URL) |>
 
 con <- duckdbfs::cached_connection(tempfile())
 
-obs_key_cols <- c("project_id", "site_id", "datetime", "duration", "variable", "depth")
+obs_key_cols <- c("site_id", "datetime", "duration", "variable", "depth")
 score_key_cols <- c(obs_key_cols, "model_id", "family", "reference_datetime")
 
 ### Access the targets, forecasts, and scores subsets
