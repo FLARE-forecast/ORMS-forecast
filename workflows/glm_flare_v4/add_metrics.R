@@ -126,7 +126,8 @@ add_metrics <- function(use_s3, site_id, forecast_start_datetime, sim_name, buck
     filter(model_id == sim_name,
            reference_date == ref_date) |>
     collect() |>
-    mutate(datetime = lubridate::as_datetime(datetime))
+    mutate(datetime = lubridate::as_datetime(datetime),
+           site_id = site_id)
 
   # Calculate probability of being mixed
   min_depth <- 0.5
