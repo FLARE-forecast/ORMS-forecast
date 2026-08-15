@@ -197,7 +197,7 @@ score_group <- function(i, groups) {
                                            family, pub_datetime, observation, depth,
                                            crps, logs, mean, median, sd,
                                            quantile97.5, quantile02.5, quantile90, quantile10,
-                                           duration, model_id, project_id, variable)) |>
+                                           duration, model_id, variable)) |>
       dplyr::compute()
     new_scores <- dplyr::union_all(bundled_scores, new_scores)
   }
