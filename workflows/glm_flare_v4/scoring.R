@@ -70,7 +70,7 @@ targets <-
 # No point in trying to score any forecasts still in future (relative to last observed)
 # (pull forces eval, can take a minute)
 last_observed_date <- targets |> select(datetime) |> distinct() |>
-  filter(datetime == max(datetime)) |> pull(datetime)
+  filter(datetime == max(datetime, na.rm = TRUE)) |> pull(datetime)
 
 forecasts <-
   duckdbfs::open_dataset(FORECASTS_S3_PATH,

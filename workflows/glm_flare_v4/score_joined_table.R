@@ -4,9 +4,9 @@ score_joined_table <- function (joined,
 {
 
   joined <- joined |>
-    dplyr::mutate(family = dplyr::case_match(family,
-                                             "ensemble" ~ "sample",
-                                             .default = family))
+    dplyr::mutate(family = dplyr::recode_values(family,
+                                                "ensemble" ~ "sample",
+                                                default = family))
 
   grouping <- c(
     "model_id",
