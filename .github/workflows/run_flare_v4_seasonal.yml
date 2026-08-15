@@ -3,7 +3,7 @@ on:
   schedule:
   - cron: "0 13 * * 1"
 
-name: seaonal_forecast
+name: seasonal_forecast
 
 jobs:
   run_forecast:
