@@ -52,6 +52,16 @@ add_metrics(use_s3 = config$run_config$use_s3,
             local_dir = file.path(lake_directory, "forecasts", "parquet"),
             nml_file = file.path(lake_directory, "configuration", config_set_name, "glm3.nml"))
 
+# Extract met ensemble forecast (air temperature, wind speed) and write to the forecast bucket
+extract_met_forecast(met_dir = config$file_path$execute_directory,
+                     met_model_id = config$met$openmeteo_model,
+                     site_id = config$location$site_id,
+                     forecast_start_datetime = config$run_config$forecast_start_datetime,
+                     use_s3 = config$run_config$use_s3,
+                     bucket = config$s3$forecasts_parquet$bucket,
+                     endpoint = config$s3$forecasts_parquet$endpoint,
+                     local_dir = file.path(lake_directory, "forecasts", "parquet"))
+
 forecast_start_datetime <- lubridate::as_datetime(config$run_config$forecast_start_datetime) + lubridate::days(1)
 start_datetime <- forecast_start_datetime - lubridate::days(3)
 restart_file <- paste0(config$location$site_id,"-",
