@@ -9,6 +9,7 @@ library(stringr)
 library(minioclient)
 library(DBI)
 library(score4cast)
+library(lubridate)
 install_mc()
 
 # =============================================================================
