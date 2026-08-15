@@ -165,6 +165,7 @@ add_metrics <- function(use_s3, site_id, forecast_start_datetime, sim_name, buck
                   reference_date = as.character(as_date(reference_datetime)),
                   log_weight = 0,
                   forecast = NA,
+                  site_id = site_id
                   ) |>
     dplyr::select(names(forecast_df))
 
@@ -191,7 +192,8 @@ add_metrics <- function(use_s3, site_id, forecast_start_datetime, sim_name, buck
                   variable_type = "diagnostic",
                   reference_date = as.character(as_date(reference_datetime)),
                   log_weight = 0,
-                  forecast = NA,) |>
+                  forecast = NA,
+                  site_id = site_id) |>
     dplyr::select(names(forecast_df))
 
   forecast_df <- forecast_df |>
