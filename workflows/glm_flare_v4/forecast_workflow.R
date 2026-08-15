@@ -4,8 +4,8 @@ library(FLAREr)
 lake_directory <- file.path(here::here())
 setwd(lake_directory)
 
-#Sys.setenv('GLM_PATH'= GLMAEDr::glm_path())
-Sys.setenv('GLM_PATH'='/Users/rqthomas/Downloads/delete_me/flare-rs-tutorial-2/binary/macos/glm')
+Sys.setenv('GLM_PATH'= GLMAEDr::glm_path())
+#Sys.setenv('GLM_PATH'='/Users/rqthomas/Downloads/delete_me/flare-rs-tutorial-2/binary/macos/glm')
 
 Sys.setenv("AWS_DEFAULT_REGION" = "amnh1",
            "AWS_S3_ENDPOINT" = "osn.mghpcc.org",
