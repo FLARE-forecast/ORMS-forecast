@@ -213,19 +213,30 @@ score_group <- function(i, groups) {
   })
 }
 
-fc <- duckdbfs::open_dataset(file.path(TEMP_DIR, "score_me")) |>
-  filter(!is.na(model_id))
-groups <- fc |> distinct(site_id, variable, model_id, family) |> collect()
-total <- nrow(groups)
+score_me_path <- file.path(TEMP_DIR, "score_me")
+score_me_files <- if (dir.exists(score_me_path)) {
+  list.files(score_me_path, recursive = TRUE)
+} else {
+  character(0)
+}
 
-print("Computing new scores....")
-pb <- progress_bar$new(format = "  scoring [:bar] :percent in :elapsed",
-                       total = total, clear = FALSE, width= 60)
+if (length(score_me_files) == 0) {
+  message("No forecasts require scoring at this time.")
+} else {
+  fc <- duckdbfs::open_dataset(score_me_path) |>
+    filter(!is.na(model_id))
+  groups <- fc |> distinct(site_id, variable, model_id, family) |> collect()
+  total <- nrow(groups)
 
-# If we have lots to score this can take a while
-for (i in seq_len(total)) {
-  pb$tick()
-  print(paste("Scoring model:", groups$model_id[i], "variable:", groups$variable[i]))
-  score_group(i, groups)
+  print("Computing new scores....")
+  pb <- progress_bar$new(format = "  scoring [:bar] :percent in :elapsed",
+                         total = total, clear = FALSE, width= 60)
 
+  # If we have lots to score this can take a while
+  for (i in seq_len(total)) {
+    pb$tick()
+    print(paste("Scoring model:", groups$model_id[i], "variable:", groups$variable[i]))
+    score_group(i, groups)
+
+  }
 }
