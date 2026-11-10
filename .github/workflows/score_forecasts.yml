@@ -19,6 +19,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: ./.github/actions/install-mc
+
       - name: Run automatic prediction file
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
