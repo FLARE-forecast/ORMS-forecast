@@ -1,6 +1,10 @@
 #remotes::install_github('cboettig/duckdbfs', upgrade = 'never')
 #remotes::install_github('eco4cast/score4cast')
 
+remotes::install_url(
+  "https://cran.r-project.org/src/contrib/Archive/duckdb/duckdb_1.5.2.tar.gz",
+  dependencies = TRUE)
+
 library(dplyr)
 library(duckdbfs)
 library(progress)
